@@ -11,40 +11,56 @@ import SwiftUI
 /// A horizontal split view that shows a left-hand sidebar of simulators and right-hand details.
 struct SplitLayoutView: View {
     @ObservedObject var controller: SimulatorsController
+    @StateObject private var devicesController = DevicesController()
 
-	@State private var dropHovering: Bool = false
+    @State private var sidebarMode: SidebarMode = .simulators
+    @State private var selectedDeviceID: String?
+
+    @State private var dropHovering: Bool = false
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(controller: controller)
+            SidebarView(controller: controller,
+                        devicesController: devicesController,
+                        sidebarMode: $sidebarMode,
+                        selectedDeviceID: $selectedDeviceID)
                 .frame(minWidth: 220)
         } detail: {
-            // Use a GeometryReader here to take up as much space as possible
-            // otherwise the view would collapse down to (potentially)
-            // the size of the Text.
             Group {
-				switch controller.selectedSimulatorIDs.count {
-				case 0:
-					Text("Select a simulator from the list.")
-						.frame(maxWidth: .infinity, maxHeight: .infinity)
-				case 1:
-					ControlView(controller: controller,
-								simulator: controller.selectedSimulators[0],
-								applications: controller.applications)
-						.padding()
-				default:
-					Text("Drag file(s) here to copy them to each simulator's Files directory.\n(booted simulators only)")
-						.multilineTextAlignment(.center)
-						.padding(20)
-						.overlay(
-							RoundedRectangle(cornerRadius: 5)
-								.stroke(dropHovering ? Color.white : Color.gray, lineWidth: 1)
-						)
-						.onDrop(of: [.fileURL], isTargeted: $dropHovering) { providers in
-							return copyFilesFromProviders(providers, toFilePath: .files)
-						}
-						.frame(maxWidth: .infinity, maxHeight: .infinity)
-				}
+                switch sidebarMode {
+                case .simulators:
+                    switch controller.selectedSimulatorIDs.count {
+                    case 0:
+                        Text("Select a simulator from the list.")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case 1:
+                        ControlView(controller: controller,
+                                    simulator: controller.selectedSimulators[0],
+                                    applications: controller.applications)
+                            .padding()
+                    default:
+                        Text("Drag file(s) here to copy them to each simulator's Files directory.\n(booted simulators only)")
+                            .multilineTextAlignment(.center)
+                            .padding(20)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .stroke(dropHovering ? Color.white : Color.gray, lineWidth: 1)
+                            )
+                            .onDrop(of: [.fileURL], isTargeted: $dropHovering) { providers in
+                                return copyFilesFromProviders(providers, toFilePath: .files)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                case .devices:
+                    if let id = selectedDeviceID,
+                       let device = devicesController.devices.first(where: { $0.id == id }) {
+                        DeviceDetailView(device: device)
+                            .padding()
+                    } else {
+                        Text("Select a device from the list.")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
             }
         }
     }

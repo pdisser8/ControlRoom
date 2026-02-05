@@ -8,10 +8,18 @@
 
 import SwiftUI
 
+enum SidebarMode {
+    case simulators
+    case devices
+}
+
 /// Shows the list of available simulators, allowing selection, filtering, and deletion.
 struct SidebarView: View {
     @EnvironmentObject var preferences: Preferences
     @ObservedObject var controller: SimulatorsController
+    @ObservedObject var devicesController: DevicesController
+    @Binding var sidebarMode: SidebarMode
+    @Binding var selectedDeviceID: String?
 
     @AppStorage("CRSidebar_FilterText") private var filterText = ""
     @AppStorage("CRLastSimulatorUDID") private var lastSimulatorUDID = "booted"
@@ -30,23 +38,65 @@ struct SidebarView: View {
         }
     }
 
+    private var filteredDevices: [DeviceCtl.Device] {
+        let trimmed = filterText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let devices = devicesController.devices
+
+        guard trimmed.isNotEmpty else { return devices }
+        return devices.filter { $0.name.localizedCaseInsensitiveContains(trimmed) || $0.udid.localizedCaseInsensitiveContains(trimmed) }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            List(selection: $controller.selectedSimulatorIDs.onChange(updateSelectedSimulators)) {
-                if controller.simulators.isEmpty {
-                    Text("No simulators")
-                } else {
-                    ForEach(SimCtl.DeviceFamily.allCases, id: \.self, content: section)
-                }
+            Picker("", selection: $sidebarMode) {
+                Text("Simulators").tag(SidebarMode.simulators)
+                Text("Devices").tag(SidebarMode.devices)
             }
-            .contextMenu {
-                if controller.selectedSimulatorIDs.isNotEmpty {
-                    Button("Delete...") {
-                        shouldShowDeleteAlert = true
+            .pickerStyle(.segmented)
+            .padding([.horizontal, .top], 8)
+            .padding(.bottom, 4)
+
+            Group {
+                switch sidebarMode {
+                case .simulators:
+                    List(selection: $controller.selectedSimulatorIDs.onChange(updateSelectedSimulators)) {
+                        if controller.simulators.isEmpty {
+                            Text("No simulators")
+                        } else {
+                            ForEach(SimCtl.DeviceFamily.allCases, id: \.self, content: section)
+                        }
                     }
+                    .contextMenu {
+                        if controller.selectedSimulatorIDs.isNotEmpty {
+                            Button("Delete...") {
+                                shouldShowDeleteAlert = true
+                            }
+                        }
+                    }
+                    .listStyle(.sidebar)
+                case .devices:
+                    List(selection: $selectedDeviceID) {
+                        switch devicesController.loadingStatus {
+                        case .loading:
+                            Text("Loading devices…")
+                        case .failed:
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Failed to load devices")
+                            }
+                        case .success:
+                            if filteredDevices.isEmpty {
+                                Text("No devices found")
+                            } else {
+                                ForEach(filteredDevices) { device in
+                                    DeviceSidebarView(device: device)
+                                        .tag(device.id)
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.sidebar)
                 }
             }
-            .listStyle(.sidebar)
 
             Divider()
 
@@ -78,6 +128,12 @@ struct SidebarView: View {
                     confirm: deleteSelectedSimulators,
                     content: { EmptyView() }
                 )
+            }
+        }
+        .onChange(of: sidebarMode) { newMode in
+            if newMode == .devices {
+                devicesController.reload()
+                controller.selectedSimulatorIDs.removeAll()
             }
         }
     }
@@ -127,7 +183,12 @@ struct SidebarView_Previews: PreviewProvider {
 
     static var previews: some View {
         let preferences = Preferences()
-        return SidebarView(controller: SimulatorsController(preferences: preferences))
-            .environmentObject(preferences)
+        SidebarView(
+            controller: SimulatorsController(preferences: preferences),
+            devicesController: DevicesController(),
+            sidebarMode: .constant(.simulators),
+            selectedDeviceID: .constant(nil)
+        )
+        .environmentObject(preferences)
     }
 }

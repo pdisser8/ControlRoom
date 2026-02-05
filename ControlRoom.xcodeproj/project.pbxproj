@@ -89,6 +89,14 @@
 		B07F585123F9F83800256D5D /* SimCtl+SubCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07F585023F9F83800256D5D /* SimCtl+SubCommandsTests.swift */; };
 		B852E2EB2DA39225003F5FD6 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = B852E2EA2DA39225003F5FD6 /* KeyboardShortcuts */; };
 		B8C54DB92DA308E90037143E /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B8C54DB82DA308E90037143E /* Localizable.xcstrings */; };
+		C800EFCD2F2A68E00079C3F2 /* DeviceCtl+SubCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFCA2F2A68E00079C3F2 /* DeviceCtl+SubCommands.swift */; };
+		C800EFCE2F2A68E00079C3F2 /* DeviceCtl+Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFCB2F2A68E00079C3F2 /* DeviceCtl+Types.swift */; };
+		C800EFCF2F2A68E00079C3F2 /* DeviceCtl.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFC92F2A68E00079C3F2 /* DeviceCtl.swift */; };
+		C800EFD02F2A68E00079C3F2 /* DevicesController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFCC2F2A68E00079C3F2 /* DevicesController.swift */; };
+		C800EFD22F2A6A220079C3F2 /* DeviceSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFD12F2A6A220079C3F2 /* DeviceSidebarView.swift */; };
+		C800EFD42F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFD32F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift */; };
+		C800EFD82F2A7CE50079C3F2 /* DeviceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFD72F2A7CE50079C3F2 /* DeviceDetailView.swift */; };
+		C8ACACE82F32818000199D23 /* DeviceAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8ACACE72F32817B00199D23 /* DeviceAppView.swift */; };
 		C9C203E42B1788270081E1EF /* LocalSearchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C203E32B1788270081E1EF /* LocalSearchController.swift */; };
 		C9C203E62B1788C90081E1EF /* LocalSearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C203E52B1788C90081E1EF /* LocalSearchResult.swift */; };
 		C9C203ED2B17FEA80081E1EF /* LocalSearchRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C203EC2B17FEA80081E1EF /* LocalSearchRowView.swift */; };
@@ -197,6 +205,14 @@
 		B07F585223F9F83800256D5D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B8C54DB72DA308920037143E /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Main.strings; sourceTree = "<group>"; };
 		B8C54DB82DA308E90037143E /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		C800EFC92F2A68E00079C3F2 /* DeviceCtl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCtl.swift; sourceTree = "<group>"; };
+		C800EFCA2F2A68E00079C3F2 /* DeviceCtl+SubCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeviceCtl+SubCommands.swift"; sourceTree = "<group>"; };
+		C800EFCB2F2A68E00079C3F2 /* DeviceCtl+Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeviceCtl+Types.swift"; sourceTree = "<group>"; };
+		C800EFCC2F2A68E00079C3F2 /* DevicesController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesController.swift; sourceTree = "<group>"; };
+		C800EFD12F2A6A220079C3F2 /* DeviceSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSidebarView.swift; sourceTree = "<group>"; };
+		C800EFD32F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCtlSubCommandsTests.swift; sourceTree = "<group>"; };
+		C800EFD72F2A7CE50079C3F2 /* DeviceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceDetailView.swift; sourceTree = "<group>"; };
+		C8ACACE72F32817B00199D23 /* DeviceAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAppView.swift; sourceTree = "<group>"; };
 		C9C203E32B1788270081E1EF /* LocalSearchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSearchController.swift; sourceTree = "<group>"; };
 		C9C203E52B1788C90081E1EF /* LocalSearchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSearchResult.swift; sourceTree = "<group>"; };
 		C9C203EC2B17FEA80081E1EF /* LocalSearchRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSearchRowView.swift; sourceTree = "<group>"; };
@@ -247,6 +263,7 @@
 		511BA57B23F3FFEA00E3E660 /* ControlRoom */ = {
 			isa = PBXGroup;
 			children = (
+				C800EFD62F2A79390079C3F2 /* Device UI */,
 				54C2092927DBDE0800E47016 /* Document Picker */,
 				555A145F23F758DE00313BC5 /* Main Window */,
 				55AF68B323F9CFC600C5D87A /* Settings UI */,
@@ -405,6 +422,7 @@
 				511BA57E23F3FFEA00E3E660 /* MainView.swift */,
 				551F8CEE23F48B030006D1BD /* SplitLayoutView.swift */,
 				551F8CEC23F489A50006D1BD /* SidebarView.swift */,
+				C800EFD12F2A6A220079C3F2 /* DeviceSidebarView.swift */,
 				551F8CF823F4C45A0006D1BD /* SimulatorSidebarView.swift */,
 				510871F125C317830009E39F /* SimulatorAction.swift */,
 				55DF68B623F856E100E717D3 /* SimulatorActionSheet.swift */,
@@ -425,6 +443,10 @@
 		555A146323F762AD00313BC5 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				C800EFC92F2A68E00079C3F2 /* DeviceCtl.swift */,
+				C800EFCA2F2A68E00079C3F2 /* DeviceCtl+SubCommands.swift */,
+				C800EFCB2F2A68E00079C3F2 /* DeviceCtl+Types.swift */,
+				C800EFCC2F2A68E00079C3F2 /* DevicesController.swift */,
 				48369F9C2D0BCE7B00B74A60 /* Snapshot.swift */,
 				48540AB02D0B4DFB004F04E4 /* SnapshotCtl.swift */,
 				48540AB22D0B4E0C004F04E4 /* SnapshotCtl+Commands.swift */,
@@ -485,9 +507,19 @@
 		B07F585823F9F99F00256D5D /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				C800EFD32F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift */,
 				B07F585023F9F83800256D5D /* SimCtl+SubCommandsTests.swift */,
 			);
 			path = Controllers;
+			sourceTree = "<group>";
+		};
+		C800EFD62F2A79390079C3F2 /* Device UI */ = {
+			isa = PBXGroup;
+			children = (
+				C8ACACE72F32817B00199D23 /* DeviceAppView.swift */,
+				C800EFD72F2A7CE50079C3F2 /* DeviceDetailView.swift */,
+			);
+			path = "Device UI";
 			sourceTree = "<group>";
 		};
 		C9C203EB2B17FE900081E1EF /* LocationVIew */ = {
@@ -676,6 +708,7 @@
 				48369F9F2D0D8A9300B74A60 /* SnapshotsView.swift in Sources */,
 				511BA59223F4031F00E3E660 /* ControlView.swift in Sources */,
 				5534158223FE0539005C0A41 /* Contributors.swift in Sources */,
+				C8ACACE82F32818000199D23 /* DeviceAppView.swift in Sources */,
 				3C13FF9B2BEF4D5100060A5C /* PathToTerminalTextFieldView.swift in Sources */,
 				511BA57F23F3FFEA00E3E660 /* MainView.swift in Sources */,
 				551F8D0023F5CB3A0006D1BD /* SimCtl+Types.swift in Sources */,
@@ -709,6 +742,7 @@
 				551F8CF123F498C30006D1BD /* SimulatorsController.swift in Sources */,
 				ACCD798C240ADEE20004ECE5 /* NotificationEditorView.swift in Sources */,
 				41C44ACD2616FCB50016B1E4 /* FFMPEGConverter.swift in Sources */,
+				C800EFD22F2A6A220079C3F2 /* DeviceSidebarView.swift in Sources */,
 				5197324A2A0863B400B1F68C /* OverridesView.swift in Sources */,
 				70BE435A23F54B7200FD6282 /* LocationView.swift in Sources */,
 				ACD2064D2431F20000F8659B /* CommandLineExecuter.swift in Sources */,
@@ -727,7 +761,12 @@
 				510871F225C317830009E39F /* SimulatorAction.swift in Sources */,
 				55AF68B523F9CFD600C5D87A /* SettingsView.swift in Sources */,
 				51AB56EF2A143BC0002B5A67 /* PickedColor.swift in Sources */,
+				C800EFCD2F2A68E00079C3F2 /* DeviceCtl+SubCommands.swift in Sources */,
+				C800EFCE2F2A68E00079C3F2 /* DeviceCtl+Types.swift in Sources */,
+				C800EFCF2F2A68E00079C3F2 /* DeviceCtl.swift in Sources */,
+				C800EFD02F2A68E00079C3F2 /* DevicesController.swift in Sources */,
 				B07F584923F99A1700256D5D /* SimCtl+SubCommands.swift in Sources */,
+				C800EFD82F2A7CE50079C3F2 /* DeviceDetailView.swift in Sources */,
 				551F8CF523F4AF7B0006D1BD /* SearchField.swift in Sources */,
 				AC472CCF240D46D7007FF521 /* KeyedEncodingContainer-NotEmpty.swift in Sources */,
 				48540AB12D0B4DFB004F04E4 /* SnapshotCtl.swift in Sources */,
@@ -741,6 +780,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C800EFD42F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift in Sources */,
 				B07F585123F9F83800256D5D /* SimCtl+SubCommandsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -825,6 +865,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -882,6 +923,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -896,11 +938,12 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = ControlRoom/ControlRoom.entitlements;
 				CODE_SIGN_IDENTITY = "-";
+				"CODE_SIGN_IDENTITY[sdk=xros*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"ControlRoom/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = N67UUGKT44;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -931,11 +974,12 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = ControlRoom/ControlRoom.entitlements;
 				CODE_SIGN_IDENTITY = "-";
+				"CODE_SIGN_IDENTITY[sdk=xros*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"ControlRoom/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = N67UUGKT44;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -967,7 +1011,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = B5C26XE59E;
+				DEVELOPMENT_TEAM = N67UUGKT44;
 				INFOPLIST_FILE = ControlRoomTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -990,7 +1034,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = B5C26XE59E;
+				DEVELOPMENT_TEAM = N67UUGKT44;
 				INFOPLIST_FILE = ControlRoomTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

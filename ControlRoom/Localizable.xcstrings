@@ -707,6 +707,9 @@
         }
       }
     },
+    "Devices" : {
+
+    },
     "Differentiate Without Color" : {
       "localizations" : {
         "ar" : {
@@ -907,6 +910,9 @@
         }
       }
     },
+    "Failed to load devices" : {
+
+    },
     "Fetching simulator list…" : {
       "localizations" : {
         "ar" : {
@@ -1027,6 +1033,9 @@
         }
       }
     },
+    "Loading devices…" : {
+
+    },
     "Locale:" : {
       "localizations" : {
         "ar" : {
@@ -1145,6 +1154,9 @@
           }
         }
       }
+    },
+    "No devices found" : {
+
     },
     "No saved deep links created yet." : {
       "localizations" : {
@@ -1296,6 +1308,9 @@
         }
       }
     },
+    "Pair" : {
+
+    },
     "Path to Terminal" : {
       "localizations" : {
         "ar" : {
@@ -1345,6 +1360,9 @@
           }
         }
       }
+    },
+    "Reboot" : {
+
     },
     "Record %@" : {
       "localizations" : {
@@ -1696,6 +1714,9 @@
         }
       }
     },
+    "Select a device from the list." : {
+
+    },
     "Select a simulator from the list." : {
       "localizations" : {
         "ar" : {
@@ -1855,6 +1876,9 @@
           }
         }
       }
+    },
+    "Simulators" : {
+
     },
     "Smart Invert" : {
       "localizations" : {
@@ -2025,6 +2049,9 @@
           }
         }
       }
+    },
+    "Unpair" : {
+
     },
     "Uppercase Hex Strings" : {
       "localizations" : {
