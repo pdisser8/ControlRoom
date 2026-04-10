@@ -61,18 +61,45 @@ struct Application: Hashable, Comparable {
         firstAppGroupFolderURL = URL(string: application.appGroupsFolderPaths?.first?.value ?? "")
         bundleURL = URL(string: application.bundlePath)
     }
+    
+    init?(application: DeviceCtl.AppInfo) {
+        // devicectl returns file:// URLs
+        guard let url = URL(string: application.url) else { return nil }
 
-	var icon: NSImage? {
-		guard let imageURLs else { return nil }
+        self.url = url
+        type = application.type
+        displayName = application.name
+        bundleIdentifier = application.bundleIdentifier
+        
+        // Use the version info from devicectl directly
+        versionNumber = application.version ?? ""
+        buildNumber = application.bundleVersion ?? ""
 
-		for iconURL in imageURLs {
-			if let iconImage = NSImage(contentsOf: iconURL) {
-				return iconImage
-			}
-		}
+        // Try to get icon from Info.plist if the URL is accessible
+        let plistURL = url.appendingPathComponent("Info.plist")
+        let plistDictionary = NSDictionary(contentsOf: plistURL)
+        
+        imageURLs = Self.fetchIconName(plistDictionary: plistDictionary)
+            .sorted(by: >)
+            .compactMap { Bundle(url: url)?.urlForImageResource($0) }
 
-		return nil
-	}
+        // devicectl doesn't provide these paths in the JSON
+        dataFolderURL = nil
+        firstAppGroupFolderURL = nil
+        bundleURL = url
+    }
+
+    var icon: NSImage? {
+        guard let imageURLs else { return nil }
+
+        for iconURL in imageURLs {
+            if let iconImage = NSImage(contentsOf: iconURL) {
+                return iconImage
+            }
+        }
+
+        return nil
+    }
 
     private static func fetchIconName(plistDictionary: NSDictionary?) -> [String] {
 		guard let plistDictionary else { return [] }

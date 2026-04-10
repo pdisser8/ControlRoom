@@ -96,6 +96,7 @@
 		C800EFD22F2A6A220079C3F2 /* DeviceSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFD12F2A6A220079C3F2 /* DeviceSidebarView.swift */; };
 		C800EFD42F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFD32F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift */; };
 		C800EFD82F2A7CE50079C3F2 /* DeviceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800EFD72F2A7CE50079C3F2 /* DeviceDetailView.swift */; };
+		C857B71A2F3664E000FDA7DF /* DeviceControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C857B7192F3664E000FDA7DF /* DeviceControlView.swift */; };
 		C8ACACE82F32818000199D23 /* DeviceAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8ACACE72F32817B00199D23 /* DeviceAppView.swift */; };
 		C9C203E42B1788270081E1EF /* LocalSearchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C203E32B1788270081E1EF /* LocalSearchController.swift */; };
 		C9C203E62B1788C90081E1EF /* LocalSearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C203E52B1788C90081E1EF /* LocalSearchResult.swift */; };
@@ -212,6 +213,7 @@
 		C800EFD12F2A6A220079C3F2 /* DeviceSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSidebarView.swift; sourceTree = "<group>"; };
 		C800EFD32F2A6FB50079C3F2 /* DeviceCtlSubCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCtlSubCommandsTests.swift; sourceTree = "<group>"; };
 		C800EFD72F2A7CE50079C3F2 /* DeviceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceDetailView.swift; sourceTree = "<group>"; };
+		C857B7192F3664E000FDA7DF /* DeviceControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceControlView.swift; sourceTree = "<group>"; };
 		C8ACACE72F32817B00199D23 /* DeviceAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAppView.swift; sourceTree = "<group>"; };
 		C9C203E32B1788270081E1EF /* LocalSearchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSearchController.swift; sourceTree = "<group>"; };
 		C9C203E52B1788C90081E1EF /* LocalSearchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSearchResult.swift; sourceTree = "<group>"; };
@@ -516,6 +518,7 @@
 		C800EFD62F2A79390079C3F2 /* Device UI */ = {
 			isa = PBXGroup;
 			children = (
+				C857B7192F3664E000FDA7DF /* DeviceControlView.swift */,
 				C8ACACE72F32817B00199D23 /* DeviceAppView.swift */,
 				C800EFD72F2A7CE50079C3F2 /* DeviceDetailView.swift */,
 			);
@@ -732,6 +735,7 @@
 				511BA5A223F41A5900E3E660 /* Binding-OnChange.swift in Sources */,
 				55DF68BD23F8C76800E717D3 /* Collection.swift in Sources */,
 				E04B47342B07B72C00DAE338 /* Location.swift in Sources */,
+				C857B71A2F3664E000FDA7DF /* DeviceControlView.swift in Sources */,
 				51AB56D92A127F9F002B5A67 /* ChromeRenderer.swift in Sources */,
 				511BA59823F4096800E3E660 /* Simulator.swift in Sources */,
 				51AB56DE2A13D14A002B5A67 /* DeepLink.swift in Sources */,

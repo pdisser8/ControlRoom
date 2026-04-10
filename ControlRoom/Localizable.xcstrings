@@ -1033,6 +1033,9 @@
         }
       }
     },
+    "Load app folder" : {
+
+    },
     "Loading devices…" : {
 
     },
@@ -1919,6 +1922,9 @@
           }
         }
       }
+    },
+    "State" : {
+
     },
     "Status Bar" : {
       "localizations" : {

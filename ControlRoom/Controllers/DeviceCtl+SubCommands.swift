@@ -12,44 +12,44 @@ extension DeviceCtl {
     struct Command: CommandLineCommand {
         let arguments: [String]
         let environmentOverrides: [String: String]?
-
+        
         private init(_ components: [String], arguments: [String] = [], environmentOverrides: [String: String]? = nil) {
             self.arguments = ["devicectl"] + components + arguments
             self.environmentOverrides = environmentOverrides
         }
-
+        
         static func list(_ scope: List, flags: [Flag] = []) -> Command {
             Command(scope.arguments + flags.flatMap(\.arguments))
         }
-
+        
         static func deviceInfo(_ deviceId: String) -> Command {
             Command(["device", "info", deviceId])
         }
-
+        
         static func pair(_ deviceId: String) -> Command {
             Command(["manage", "pair", "--device", deviceId])
         }
-
+        
         static func unpair(_ deviceId: String) -> Command {
             Command(["manage", "unpair", "--device", deviceId])
         }
-
+        
         static func install(_ deviceId: String, appBundle: String) -> Command {
             Command(["device", "install", "app", "--device", deviceId, appBundle])
         }
-
+        
         static func uninstall(_ deviceId: String, appBundleId: String) -> Command {
             Command(["device", "uninstall", "app", "--device", deviceId, appBundleId])
         }
-
+        
         static func launch(_ deviceId: String, appBundleId: String, options: [Launch.Option] = []) -> Command {
-            Command(["device", "process", "launch"] + options.flatMap(\.arguments) + [deviceId, appBundleId])
+            Command(["device", "process", "launch", "--device", deviceId, appBundleId] + options.flatMap(\.arguments))
         }
-
-        static func terminate(_ deviceId: String, appBundleId: String) -> Command {
-            Command(["device", "process", "terminate", "--device", deviceId, "--app", appBundleId])
+        
+        static func terminate(_ deviceId: String, pid: Int, options: [Terminate.Option] = []) -> Command {
+            Command(["device", "process", "terminate", "--device", deviceId, "--pid", String(pid)] + options.flatMap(\.arguments))
         }
-
+        
         static func listApps(_ deviceId: String, flags: [Flag] = []) -> Command {
             Command(["device", "info", "apps", "--device", deviceId] + flags.flatMap(\.arguments))
         }
@@ -61,12 +61,21 @@ extension DeviceCtl {
         static func reboot (_ deviceId: String) -> Command {
             Command(["device", "reboot", "--device", deviceId])
         }
-    }
+        
+        static func listProcesses(_ deviceId: String, flags: [Flag] = []) -> Command {
+            Command(["device", "info", "processes", "--device", deviceId] + flags.flatMap(\.arguments))
+        }
+        
+        static func listApplicationFiles(_ deviceId: String, appBundleId: String, flags: [Flag] = []) -> Command {
+            Command(["device", "info", "files", "--device", deviceId, "--domain-type", "appDataContainer", "--domain-identifier", appBundleId] + flags.flatMap(\.arguments))
 
+        }
+    }
+    
     enum List {
         case devices(DeviceFilter? = nil)
         case preferredDDI
-
+        
         var arguments: [String] {
             switch self {
             case .devices(let filter):
@@ -76,13 +85,13 @@ extension DeviceCtl {
             }
         }
     }
-
+    
     enum Flag: Hashable {
         case json
         case verbose
         case jsonOutput(String)
         case includeAllApps
-
+        
         var arguments: [String] {
             switch self {
             case .json:
@@ -96,13 +105,13 @@ extension DeviceCtl {
             }
         }
     }
-
+    
     enum DeviceFilter {
         case availableOnly
         case platform(Platform)
         case name(String)
         case udid(String)
-
+        
         var arguments: [String] {
             switch self {
             case .availableOnly:
@@ -116,18 +125,80 @@ extension DeviceCtl {
             }
         }
     }
-
+    
     struct Launch {
         enum Option {
+            /// Launches the app in a suspended state, waiting for a debugger to attach
+            /// (corresponds to --start-stopped flag)
             case waitForDebugger
+            
+            /// Environment variables to provide to the process
+            /// (corresponds to --environment-variables flag)
             case environment([String: String])
-
+            
+            /// The user ID or name to run the process as
+            /// (corresponds to --user flag)
+            case user(String)
+            
+            /// The initial working directory for the spawned process
+            /// (corresponds to --working-directory flag)
+            case workingDirectory(String)
+            
+            /// A URL to pass to the application for it to open during launch
+            /// (corresponds to --payload-url flag)
+            case payloadURL(String)
+            
+            /// Whether to activate the application in the foreground (default: true)
+            /// (corresponds to --activate/--no-activate flags)
+            case activate(Bool)
+            
+            /// Terminates any already-running instances of the app prior to launch
+            /// (corresponds to --terminate-existing flag)
+            case terminateExisting
+            
+            /// Attaches the application to the console and waits for it to exit
+            /// (corresponds to --console flag)
+            case console
+            
+            /// Command-line arguments to pass to the remote application
+            case arguments([String])
+            
             var arguments: [String] {
                 switch self {
                 case .waitForDebugger:
-                    return ["--wait-for-debugger"]
+                    return ["--start-stopped"]
                 case .environment(let env):
                     return env.map { key, value in "--env=\(key)=\(value)" }
+                case .user(let user):
+                    return ["--user", user]
+                case .workingDirectory(let dir):
+                    return ["--working-directory", dir]
+                case .payloadURL(let url):
+                    return ["--payload-url", url]
+                case .activate(let shouldActivate):
+                    return shouldActivate ? ["--activate"] : ["--no-activate"]
+                case .terminateExisting:
+                    return ["--terminate-existing"]
+                case .console:
+                    return ["--console"]
+                case .arguments(let args):
+                    return args
+                }
+            }
+        }
+    }
+    
+    struct Terminate {
+        enum Option {
+            /// Use SIGKILL instead of SIGTERM, preventing the target process
+            /// from catching the termination signal. This forces immediate termination
+            /// without allowing the app to perform cleanup operations.
+            case forceKill
+            
+            var arguments: [String] {
+                switch self {
+                case .forceKill:
+                    return ["--kill"]
                 }
             }
         }

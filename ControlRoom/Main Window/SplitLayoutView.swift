@@ -37,7 +37,6 @@ struct SplitLayoutView: View {
                         ControlView(controller: controller,
                                     simulator: controller.selectedSimulators[0],
                                     applications: controller.applications)
-                            .padding()
                     default:
                         Text("Drag file(s) here to copy them to each simulator's Files directory.\n(booted simulators only)")
                             .multilineTextAlignment(.center)
@@ -54,7 +53,7 @@ struct SplitLayoutView: View {
                 case .devices:
                     if let id = selectedDeviceID,
                        let device = devicesController.devices.first(where: { $0.id == id }) {
-                        DeviceDetailView(device: device)
+                        DeviceControlView(device: device, devicesController: devicesController)
                             .padding()
                     } else {
                         Text("Select a device from the list.")
@@ -65,12 +64,12 @@ struct SplitLayoutView: View {
         }
     }
 
-	func copyFilesFromProviders(_ providers: [NSItemProvider], toFilePath filePath: Simulator.FilePathKind) -> Bool {
-		for simulator in controller.selectedSimulators {
-			_ = simulator.copyFilesFromProviders(providers, toFilePath: filePath)
-		}
-		return true
-	}
+    func copyFilesFromProviders(_ providers: [NSItemProvider], toFilePath filePath: Simulator.FilePathKind) -> Bool {
+        for simulator in controller.selectedSimulators {
+            _ = simulator.copyFilesFromProviders(providers, toFilePath: filePath)
+        }
+        return true
+    }
 }
 
 struct SplitLayoutView_Previews: PreviewProvider {

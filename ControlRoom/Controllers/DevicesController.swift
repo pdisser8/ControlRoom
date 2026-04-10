@@ -48,4 +48,5 @@ final class DevicesController: ObservableObject {
             }
             .store(in: &cancellables)
     }
+
 }

@@ -145,93 +145,6 @@ extension DeviceCtl {
 
         var id: String { identifier }
     }
-
-    typealias ApplicationsList = [String: DeviceCtl.Application]
-
-    struct Application: Decodable, Equatable, Identifiable {
-        let bundleIdentifier: String
-        let displayName: String
-        let bundlePath: String
-        let version: String?
-        let bundleVersion: String?
-        let appClip: Bool?
-        let builtByDeveloper: Bool?
-        let defaultApp: Bool?
-        let hidden: Bool?
-        let internalApp: Bool?
-        let removable: Bool?
-        let executablePath: String?
-        let containerPath: String?
-        
-        var id: String { bundleIdentifier }
-
-        private enum CodingKeys: String, CodingKey {
-            // Current devicectl (jsonVersion 2)
-            case bundleIdentifier
-            case name
-            case url
-            case version
-            case bundleVersion
-            case appClip
-            case builtByDeveloper
-            case defaultApp
-            case hidden
-            case internalApp
-            case removable
-            case executablePath
-            case containerPath
-            // Legacy simulator output (jsonVersion 1)
-            case cfBundleIdentifier = "CFBundleIdentifier"
-            case cfBundleDisplayName = "CFBundleDisplayName"
-            case bundle = "Bundle"
-            case executable = "Executable"
-            case container = "Container"
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-
-            bundleIdentifier = try container.decodeIfPresent(String.self, forKey: .bundleIdentifier)
-                ?? container.decode(String.self, forKey: .cfBundleIdentifier)
-
-            displayName = try container.decodeIfPresent(String.self, forKey: .name)
-                ?? container.decodeIfPresent(String.self, forKey: .cfBundleDisplayName)
-                ?? bundleIdentifier
-
-            bundlePath = try container.decodeIfPresent(String.self, forKey: .url)
-                ?? container.decodeIfPresent(String.self, forKey: .bundle)
-                ?? ""
-
-            version = try? container.decode(String.self, forKey: .version)
-            bundleVersion = try? container.decode(String.self, forKey: .bundleVersion)
-            appClip = try? container.decode(Bool.self, forKey: .appClip)
-            builtByDeveloper = try? container.decode(Bool.self, forKey: .builtByDeveloper)
-            defaultApp = try? container.decode(Bool.self, forKey: .defaultApp)
-            hidden = try? container.decode(Bool.self, forKey: .hidden)
-            internalApp = try? container.decode(Bool.self, forKey: .internalApp)
-            removable = try? container.decode(Bool.self, forKey: .removable)
-
-            executablePath = try container.decodeIfPresent(String.self, forKey: .executablePath)
-                ?? container.decodeIfPresent(String.self, forKey: .executable)
-            containerPath = try container.decodeIfPresent(String.self, forKey: .containerPath)
-                ?? container.decodeIfPresent(String.self, forKey: .container)
-        }
-    }
-
-    // MARK: - DeviceAppsResponse
-
-    struct DeviceAppsResponse: Decodable, Equatable {
-        let apps: [Application]
-
-        private enum RootKeys: String, CodingKey { case result }
-        private enum ResultKeys: String, CodingKey { case apps }
-
-        init(from decoder: Decoder) throws {
-            let root = try decoder.container(keyedBy: RootKeys.self)
-            let result = try root.nestedContainer(keyedBy: ResultKeys.self, forKey: .result)
-            apps = try result.decode([Application].self, forKey: .apps)
-        }
-    }
 }
 
 extension DeviceCtl.Device {
@@ -251,5 +164,151 @@ extension DeviceCtl.Device {
     )
 }
 
-// Allow unqualified references to DeviceAppsResponse elsewhere in the codebase
-typealias DeviceAppsResponse = DeviceCtl.DeviceAppsResponse
+extension DeviceCtl {
+    /// The response from `devicectl device info apps --json-output`
+    struct ApplicationsList: Decodable {
+        let apps: [AppInfo]  // It's an array, not a dictionary!
+        
+        init(apps: [AppInfo]) {
+            self.apps = apps
+        }
+        
+        private enum RootKeys: String, CodingKey { case result }
+        private enum ResultKeys: String, CodingKey { case apps }
+        
+        init(from decoder: Decoder) throws {
+            let root = try decoder.container(keyedBy: RootKeys.self)
+            let result = try root.nestedContainer(keyedBy: ResultKeys.self, forKey: .result)
+            apps = try result.decode([AppInfo].self, forKey: .apps)
+        }
+    }
+    
+    /// Application info as returned by devicectl
+    struct AppInfo: Decodable {
+        let bundleIdentifier: String
+        let name: String
+        let url: String
+        let version: String?
+        let bundleVersion: String?
+        let builtByDeveloper: Bool
+        let defaultApp: Bool
+        let removable: Bool
+        
+        // Computed property to convert to ApplicationType
+        var type: ApplicationType {
+            builtByDeveloper ? .user : .system
+        }
+        
+        private enum CodingKeys: String, CodingKey {
+            case bundleIdentifier
+            case name
+            case url
+            case version
+            case bundleVersion
+            case builtByDeveloper
+            case defaultApp
+            case removable
+        }
+    }
+    
+    /// The response from `devicectl device info processes --json-output`
+    struct ProcessesList: Decodable {
+        let processes: [Process]
+        
+        init(processes: [Process]) {
+            self.processes = processes
+        }
+        
+        private enum RootKeys: String, CodingKey { case result }
+        private enum ResultKeys: String, CodingKey { case runningProcesses }
+        
+        init(from decoder: Decoder) throws {
+            let root = try decoder.container(keyedBy: RootKeys.self)
+            let result = try root.nestedContainer(keyedBy: ResultKeys.self, forKey: .result)
+            processes = try result.decode([Process].self, forKey: .runningProcesses)
+        }
+    }
+    
+    /// Information about a running process on the device
+    struct Process: Decodable {
+        /// The path to the executable file
+        let executable: String
+        
+        /// The process identifier (PID)
+        let processIdentifier: Int
+        
+        private enum CodingKeys: String, CodingKey {
+            case executable
+            case processIdentifier
+        }
+    }
+    
+    struct ApplicationFilesList: Decodable {
+        let appFiles: [AppFile]
+        
+        init(appFiles: [AppFile]) {
+            self.appFiles = appFiles
+        }
+        
+        private enum RootKeys: String, CodingKey { case result }
+        private enum ResultKeys: String, CodingKey { case appFiles }
+        
+        init(from decoder: Decoder) throws {
+            let root = try decoder.container(keyedBy: RootKeys.self)
+            let result = try root.nestedContainer(keyedBy: ResultKeys.self, forKey: .result)
+            appFiles = try result.decode([AppFile].self, forKey: .appFiles)
+        }
+    }
+        
+    struct AppFile: Decodable {
+        let name: String
+        let isDirectory: Bool
+        let size: Int?
+        let lastModDate: Date?
+    
+        private enum CodingKeys: String, CodingKey {
+            case name
+            case isDirectory
+            case size
+            case lastModDate
+        }
+    }
+}
+
+extension DeviceCtl.Process {
+    /// Extracts the application container ID from the executable path
+    /// e.g., "file:///private/var/containers/Bundle/Application/1D72B91B-67FA-4018-AE03-E1933EEF002F/Calculator.app/Calculator"
+    /// returns "1D72B91B-67FA-4018-AE03-E1933EEF002F"
+    var appContainerId: String? {
+        let path = executable
+        guard path.contains("/Application/") else { return nil }
+        
+        let components = path.components(separatedBy: "/Application/")
+        guard components.count > 1 else { return nil }
+        
+        let afterApplication = components[1]
+        let containerId = afterApplication.components(separatedBy: "/").first
+        return containerId
+    }
+}
+
+extension DeviceCtl.AppInfo {
+    /// Extracts the application container ID from the app URL
+    /// e.g., "file:///private/var/containers/Bundle/Application/1D72B91B-67FA-4018-AE03-E1933EEF002F/Calculator.app/"
+    /// returns "1D72B91B-67FA-4018-AE03-E1933EEF002F"
+    var appContainerId: String? {
+        let path = url
+        guard path.contains("/Application/") else { return nil }
+        
+        let components = path.components(separatedBy: "/Application/")
+        guard components.count > 1 else { return nil }
+        
+        let afterApplication = components[1]
+        let containerId = afterApplication.components(separatedBy: "/").first
+        return containerId
+    }
+}
+
+
+// Keep the old typealias for SimCtl compatibility but reference the new namespace
+typealias ApplicationsList = [String: SimCtl.Application]
