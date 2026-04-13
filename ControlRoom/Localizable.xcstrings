@@ -137,6 +137,12 @@
         }
       }
     },
+    "Add File to iPad" : {
+
+    },
+    "Add File to Mac" : {
+
+    },
     "Add New" : {
       "localizations" : {
         "ar" : {
@@ -587,6 +593,9 @@
         }
       }
     },
+    "Current folder:" : {
+
+    },
     "Customize…" : {
       "localizations" : {
         "ar" : {
@@ -626,6 +635,9 @@
           }
         }
       }
+    },
+    "Delete selected items?" : {
+
     },
     "Delete Simulator" : {
       "localizations" : {
@@ -923,6 +935,9 @@
         }
       }
     },
+    "Files" : {
+
+    },
     "Files path:" : {
       "localizations" : {
         "ar" : {
@@ -942,6 +957,9 @@
           }
         }
       }
+    },
+    "Go Up One Level" : {
+
     },
     "Grant" : {
       "localizations" : {
@@ -1033,9 +1051,6 @@
         }
       }
     },
-    "Load app folder" : {
-
-    },
     "Loading devices…" : {
 
     },
@@ -1126,6 +1141,9 @@
       }
     },
     "Misc" : {
+
+    },
+    "Modified" : {
 
     },
     "Move the map, paste in coordinates or search for a location, then click Activate to update the simulator to match your centered coordinate." : {
@@ -1396,6 +1414,9 @@
           }
         }
       }
+    },
+    "Refresh Files" : {
+
     },
     "Regular" : {
       "localizations" : {
@@ -1730,6 +1751,9 @@
         }
       }
     },
+    "Select an app to browse its data container." : {
+
+    },
     "Select Color" : {
       "localizations" : {
         "ar" : {
@@ -1881,6 +1905,9 @@
       }
     },
     "Simulators" : {
+
+    },
+    "Size" : {
 
     },
     "Smart Invert" : {

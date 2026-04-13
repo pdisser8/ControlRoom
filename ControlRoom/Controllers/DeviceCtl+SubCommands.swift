@@ -66,9 +66,38 @@ extension DeviceCtl {
             Command(["device", "info", "processes", "--device", deviceId] + flags.flatMap(\.arguments))
         }
         
-        static func listApplicationFiles(_ deviceId: String, appBundleId: String, flags: [Flag] = []) -> Command {
-            Command(["device", "info", "files", "--device", deviceId, "--domain-type", "appDataContainer", "--domain-identifier", appBundleId] + flags.flatMap(\.arguments))
+        static func listApplicationFiles(_ deviceId: String, appBundleId: String, subdirectory: String? = nil, flags: [Flag] = []) -> Command {
+            var arguments = ["device", "info", "files", "--device", deviceId, "--domain-type", "appDataContainer", "--domain-identifier", appBundleId]
 
+            if let subdirectory, subdirectory.isNotEmpty {
+                arguments += ["--subdirectory", subdirectory]
+            }
+
+            return Command(arguments + flags.flatMap(\.arguments))
+        }
+
+        static func copyToAppDataContainer(_ deviceId: String, appBundleId: String, sourcePaths: [String], destination: String? = nil, removeExistingContent: Bool = false) -> Command {
+            var arguments = ["device", "copy", "to", "--device", deviceId]
+            arguments += sourcePaths.flatMap { ["--source", $0] }
+
+            if let destination, destination.isNotEmpty {
+                arguments += ["--destination", destination]
+            }
+
+            arguments += ["--domain-type", "appDataContainer", "--domain-identifier", appBundleId]
+            arguments += ["--remove-existing-content", removeExistingContent ? "true" : "false"]
+            return Command(arguments)
+        }
+
+        static func copyFromAppDataContainer(_ deviceId: String, appBundleId: String, source: String, destination: String? = nil) -> Command {
+            var arguments = ["device", "copy", "from", "--device", deviceId, "--source", source]
+
+            if let destination, destination.isNotEmpty {
+                arguments += ["--destination", destination]
+            }
+
+            arguments += ["--domain-type", "appDataContainer", "--domain-identifier", appBundleId]
+            return Command(arguments)
         }
     }
     

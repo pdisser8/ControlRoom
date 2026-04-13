@@ -272,6 +272,51 @@ extension DeviceCtl {
             case size
             case lastModDate
         }
+
+        init(name: String, isDirectory: Bool, size: Int?, lastModDate: Date?) {
+            self.name = name
+            self.isDirectory = isDirectory
+            self.size = size
+            self.lastModDate = lastModDate
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            name = try container.decode(String.self, forKey: .name)
+            isDirectory = try container.decode(Bool.self, forKey: .isDirectory)
+
+            if let decodedSize = try? container.decode(Int.self, forKey: .size) {
+                size = decodedSize
+            } else if let decodedSize = try? container.decode(String.self, forKey: .size), let parsedSize = Int(decodedSize) {
+                size = parsedSize
+            } else {
+                size = nil
+            }
+
+            if let timestamp = try? container.decode(Double.self, forKey: .lastModDate) {
+                lastModDate = Date(timeIntervalSince1970: timestamp)
+            } else if let dateString = try? container.decode(String.self, forKey: .lastModDate) {
+                lastModDate = Self.date(from: dateString)
+            } else {
+                lastModDate = nil
+            }
+        }
+
+        private static func date(from string: String) -> Date? {
+            let iso8601WithFractionalSeconds = ISO8601DateFormatter()
+            iso8601WithFractionalSeconds.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+            let iso8601 = ISO8601DateFormatter()
+            iso8601.formatOptions = [.withInternetDateTime]
+
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+
+            return iso8601WithFractionalSeconds.date(from: string)
+                ?? iso8601.date(from: string)
+                ?? formatter.date(from: string)
+        }
     }
 }
 

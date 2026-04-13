@@ -111,6 +111,91 @@ enum DeviceCtl: CommandLineCommandExecuter {
         return executeJSONOutput(.listApplicationFiles(deviceId, appBundleId: appBundleId, flags: [.jsonOutput(outputURL.path)]), outputURL: outputURL)
     }
 
+    static func listApplicationFiles(_ deviceId: String, appBundleId: String, subdirectory: String) -> AnyPublisher<DeviceCtl.ApplicationFilesList, DeviceCtl.Error> {
+        let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("devicectl-appfiles-\(UUID().uuidString).json")
+        return executeJSONOutput(.listApplicationFiles(deviceId, appBundleId: appBundleId, subdirectory: subdirectory, flags: [.jsonOutput(outputURL.path)]), outputURL: outputURL)
+    }
+
+    static func copyItemsToApplicationContainer(_ deviceId: String, appBundleId: String, sourceURLs: [URL], destinationPath: String, removeExistingContent: Bool = false, completion: ((Result<Data, DeviceCtl.Error>) -> Void)? = nil) {
+        let sourcePaths = sourceURLs.map(\.path)
+        executeFileCommand(.copyToAppDataContainer(deviceId, appBundleId: appBundleId, sourcePaths: sourcePaths, destination: normalizeRemotePath(destinationPath), removeExistingContent: removeExistingContent), completion: completion)
+    }
+
+    static func copyItemsFromApplicationContainer(_ deviceId: String, appBundleId: String, sourcePaths: [String], destinationDirectory: URL, completion: ((Result<Data, DeviceCtl.Error>) -> Void)? = nil) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            for sourcePath in sourcePaths {
+                switch runFileCommand(.copyFromAppDataContainer(deviceId, appBundleId: appBundleId, source: sourcePath, destination: destinationDirectory.path)) {
+                case .success:
+                    continue
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        completion?(.failure(error))
+                    }
+                    return
+                }
+            }
+
+            DispatchQueue.main.async {
+                completion?(.success(Data()))
+            }
+        }
+    }
+
+    static func deleteItemsFromApplicationContainer(_ deviceId: String, appBundleId: String, itemNames: [String], inDirectory directory: String, completion: ((Result<Data, DeviceCtl.Error>) -> Void)? = nil) {
+        let namesToDelete = Set(itemNames)
+        guard namesToDelete.isNotEmpty else {
+            completion?(.success(Data()))
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let fileManager = FileManager.default
+            let workingDirectory = fileManager.temporaryDirectory.appendingPathComponent("devicectl-delete-\(UUID().uuidString)", isDirectory: true)
+            let snapshotDirectory = workingDirectory.appendingPathComponent("snapshot", isDirectory: true)
+            let remoteDirectory = normalizeRemotePath(directory)
+            let remoteSource = remoteDirectory ?? "."
+
+            do {
+                try fileManager.createDirectory(at: snapshotDirectory, withIntermediateDirectories: true)
+            } catch {
+                DispatchQueue.main.async {
+                    completion?(.failure(.unknown(error)))
+                }
+                return
+            }
+
+            defer {
+                try? fileManager.removeItem(at: workingDirectory)
+            }
+
+            switch runFileCommand(.copyFromAppDataContainer(deviceId, appBundleId: appBundleId, source: remoteSource, destination: snapshotDirectory.path)) {
+            case .success:
+                break
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    completion?(.failure(error))
+                }
+                return
+            }
+
+            let localDirectory = materializedDirectory(in: snapshotDirectory, remoteDirectory: remoteDirectory)
+
+            for itemName in namesToDelete {
+                let localItem = localDirectory.appendingPathComponent(itemName)
+                if fileManager.fileExists(atPath: localItem.path) {
+                    try? fileManager.removeItem(at: localItem)
+                }
+            }
+
+            let syncSource = localDirectory.appendingPathComponent(".")
+            let result = runFileCommand(.copyToAppDataContainer(deviceId, appBundleId: appBundleId, sourcePaths: [syncSource.path], destination: remoteDirectory, removeExistingContent: true))
+
+            DispatchQueue.main.async {
+                completion?(result)
+            }
+        }
+    }
+
     private static func executeJSONOutput<T: Decodable>(_ command: Command, outputURL: URL) -> AnyPublisher<T, DeviceCtl.Error> {
         Future<Data, DeviceCtl.Error> { promise in
             execute(command) { result in
@@ -146,5 +231,65 @@ enum DeviceCtl: CommandLineCommandExecuter {
             return .unknown(error)
         }
         .eraseToAnyPublisher()
+    }
+
+    private static func executeFileCommand(_ command: Command, completion: ((Result<Data, DeviceCtl.Error>) -> Void)? = nil) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = runFileCommand(command)
+            DispatchQueue.main.async {
+                completion?(result)
+            }
+        }
+    }
+
+    private static func runFileCommand(_ command: Command) -> Result<Data, DeviceCtl.Error> {
+        let task = Foundation.Process()
+        task.launchPath = launchPath
+        task.arguments = command.arguments
+
+        if let environmentOverrides = command.environmentOverrides {
+            var environment = ProcessInfo.processInfo.environment
+            environment.merge(environmentOverrides) { _, new in new }
+            task.environment = environment
+        }
+
+        let stdout = Pipe()
+        let stderr = Pipe()
+        task.standardOutput = stdout
+        task.standardError = stderr
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+
+            let stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
+            let stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
+
+            guard task.terminationStatus == 0 else {
+                let output = stderrData.isEmpty ? stdoutData : stderrData
+                let description = String(data: output, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let error = NSError(domain: "DeviceCtl", code: Int(task.terminationStatus), userInfo: [NSLocalizedDescriptionKey: description ?? "Command failed with exit status \(task.terminationStatus)."]) 
+                return .failure(.unknown(error))
+            }
+
+            return .success(stdoutData)
+        } catch {
+            return .failure(.unknown(error))
+        }
+    }
+
+    private static func materializedDirectory(in snapshotDirectory: URL, remoteDirectory: String?) -> URL {
+        guard let remoteDirectory else {
+            return snapshotDirectory
+        }
+
+        let leafName = URL(fileURLWithPath: remoteDirectory).lastPathComponent
+        let candidate = snapshotDirectory.appendingPathComponent(leafName, isDirectory: true)
+        return FileManager.default.fileExists(atPath: candidate.path) ? candidate : snapshotDirectory
+    }
+
+    private static func normalizeRemotePath(_ path: String) -> String? {
+        let trimmedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/").union(.whitespacesAndNewlines))
+        return trimmedPath.isEmpty ? nil : trimmedPath
     }
 }
