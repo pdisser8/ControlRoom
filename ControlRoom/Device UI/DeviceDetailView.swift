@@ -8,7 +8,6 @@
 import SwiftUI
 import Combine
 import AppKit
-import UniformTypeIdentifiers
 
 /// Presents basic system info for a physical device returned by devicectl.
 struct DeviceDetailView: View {
@@ -17,6 +16,8 @@ struct DeviceDetailView: View {
     @AppStorage("CRApps_ShowSystemApps") private var shouldShowSystemApps = true
     @State private var installStatusMessage = ""
     @State private var isInstallingApp = false
+    @State private var displaySummary = "Loading…"
+    @State private var lockStateSummary = "Loading…"
 
     let device: DeviceCtl.Device
     @ObservedObject var devicesController: DevicesController
@@ -25,12 +26,17 @@ struct DeviceDetailView: View {
         [device.marketingName ?? device.name, device.osVersion.map { "iOS \($0)" }].compactMap { $0 }.joined(separator: " – ")
     }
 
+    private var developerModeInstructionsURL: URL {
+        URL(string: "https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device")!
+    }
+
     var body: some View {
         Form {
             Section {
                 labeled("Name", value: device.name)
                 labeled("OS Version", value: device.osVersion)
                 labeled("Device Model", value: device.marketingName)
+                labeled("Display", value: displaySummary)
                 labeled("UDID", value: device.udid)
             } header: {
                 Text("Device")
@@ -41,8 +47,10 @@ struct DeviceDetailView: View {
             
             Section {
                 labeled("Booted State", value: device.bootState)
+                labeled("Lock State", value: lockStateSummary)
                 labeled("Paired State", value: device.pairingState)
                 labeled("Transport Type", value: device.transportType)
+                developerModeRow
             } header: {
                 Text("State")
                     .font(.title2)
@@ -53,7 +61,7 @@ struct DeviceDetailView: View {
                 Button("Reboot", action: rebootDevice)
             }
             HStack {
-                Button("Add App", action: installApp)
+                Button("Install App", action: installApp)
                     .disabled(isInstallingApp)
 
                 if installStatusMessage.isNotEmpty {
@@ -88,6 +96,7 @@ struct DeviceDetailView: View {
         .tabItem {
                 Text("System")
         }
+        .onAppear(perform: loadSupplementalState)
     }
 
         
@@ -98,6 +107,23 @@ struct DeviceDetailView: View {
                 .textSelection(.enabled)
         }
     }
+
+    private var developerModeRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            LabeledContent("Developer Mode:") {
+                Text("Check on Device")
+                    .foregroundColor(.secondary)
+            }
+
+            Text("Most buttons will be inoperable if Developer Mode is off.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Link("How to enable Developer Mode", destination: developerModeInstructionsURL)
+                .font(.caption)
+        }
+    }
+
     /// Opens a URL in the appropriate device app.
     func openURL() {
         DeviceCtl.openURL(device.udid, url: lastOpenURL)
@@ -118,10 +144,10 @@ struct DeviceDetailView: View {
     func installApp() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
-        panel.canChooseDirectories = false
+        panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.resolvesAliases = true
-        panel.allowedContentTypes = [.ipa, .appBundle]
+        panel.treatsFilePackagesAsDirectories = false
         panel.prompt = "Install"
         panel.message = "Choose an .ipa or .app to install on the selected device."
 
@@ -213,6 +239,206 @@ struct DeviceDetailView: View {
             return description.isEmpty ? "The app install failed." : description
         }
     }
+
+    private func loadSupplementalState() {
+        DeviceCtl.fetchDisplaySummary(device.udid) { result in
+            switch result {
+            case .success(let summary):
+                self.displaySummary = summary
+            case .failure:
+                self.displaySummary = "Unknown"
+            }
+        }
+
+        DeviceCtl.fetchLockState(device.udid) { result in
+            switch result {
+            case .success(let summary):
+                self.lockStateSummary = summary
+            case .failure:
+                self.lockStateSummary = "Unknown"
+            }
+        }
+    }
+}
+
+struct DeviceDiagnosticsView: View {
+    @State private var loggingProfileStatus = ""
+    @State private var sysdiagnoseStatus = ""
+    @State private var notificationNames = ""
+    @State private var notificationStatus = ""
+    @State private var observedNotificationOutput = ""
+    @State private var gatherFullLogs = false
+    @State private var isRegisteringLoggingProfile = false
+    @State private var isGatheringSysdiagnose = false
+    @State private var isPostingNotifications = false
+    @State private var isObservingNotifications = false
+
+    let device: DeviceCtl.Device
+
+    private var parsedNotificationNames: [String] {
+        notificationNames
+            .split(whereSeparator: { $0 == "," || $0.isNewline })
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter(\.isNotEmpty)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Text("Register the Core Device logging profile on this Mac so captured system logs include extra detail for debugging and feedback.")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+
+                HStack {
+                    Button("Register Logging Profile", action: registerLoggingProfile)
+                        .disabled(isRegisteringLoggingProfile)
+
+                    if loggingProfileStatus.isNotEmpty {
+                        Text(loggingProfileStatus)
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                }
+            } header: {
+                Text("Logging Profile")
+            }
+
+            Section {
+                Toggle("Gather Full Logs", isOn: $gatherFullLogs)
+
+                HStack {
+                    Button("Save Sysdiagnose…", action: gatherSysdiagnose)
+                        .disabled(isGatheringSysdiagnose)
+
+                    if sysdiagnoseStatus.isNotEmpty {
+                        Text(sysdiagnoseStatus)
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                }
+            } header: {
+                Text("Sysdiagnose")
+            }
+
+            Section {
+                TextField("Darwin notifications", text: $notificationNames, prompt: Text("com.example.refresh, com.example.sync"))
+
+                HStack {
+                    Button("Post Notifications", action: postNotifications)
+                        .disabled(parsedNotificationNames.isEmpty || isPostingNotifications)
+                    Button("Observe for 15 Seconds", action: observeNotifications)
+                        .disabled(parsedNotificationNames.isEmpty || isObservingNotifications)
+                }
+
+                if notificationStatus.isNotEmpty {
+                    Text(notificationStatus)
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+
+                if observedNotificationOutput.isNotEmpty {
+                    Text(observedNotificationOutput)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                }
+            } header: {
+                Text("Notifications")
+            }
+        }
+        .tabItem {
+            Text("Diagnostics")
+        }
+    }
+
+    private func registerLoggingProfile() {
+        isRegisteringLoggingProfile = true
+        loggingProfileStatus = "Registering…"
+
+        DeviceCtl.registerLoggingProfile { result in
+            self.isRegisteringLoggingProfile = false
+
+            switch result {
+            case .success:
+                self.loggingProfileStatus = "Registered. Activate it in System Settings."
+            case .failure(let error):
+                self.loggingProfileStatus = self.message(for: error, fallback: "Logging profile registration failed.")
+            }
+        }
+    }
+
+    private func gatherSysdiagnose() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Choose Folder"
+        panel.message = "Choose a folder for the device sysdiagnose."
+
+        guard panel.runModal() == .OK, let destinationURL = panel.url else { return }
+
+        isGatheringSysdiagnose = true
+        sysdiagnoseStatus = "Gathering sysdiagnose…"
+
+        DeviceCtl.gatherSysdiagnose(device.udid, destination: destinationURL.path, gatherFullLogs: gatherFullLogs) { result in
+            self.isGatheringSysdiagnose = false
+
+            switch result {
+            case .success:
+                self.sysdiagnoseStatus = "Saved sysdiagnose to \(destinationURL.lastPathComponent)."
+            case .failure(let error):
+                self.sysdiagnoseStatus = self.message(for: error, fallback: "Sysdiagnose failed.")
+            }
+        }
+    }
+
+    private func postNotifications() {
+        isPostingNotifications = true
+        notificationStatus = "Posting notifications…"
+        observedNotificationOutput = ""
+
+        DeviceCtl.postNotifications(device.udid, names: parsedNotificationNames) { result in
+            self.isPostingNotifications = false
+
+            switch result {
+            case .success:
+                self.notificationStatus = "Posted \(self.parsedNotificationNames.count) notification\(self.parsedNotificationNames.count == 1 ? "" : "s")."
+            case .failure(let error):
+                self.notificationStatus = self.message(for: error, fallback: "Posting notifications failed.")
+            }
+        }
+    }
+
+    private func observeNotifications() {
+        isObservingNotifications = true
+        notificationStatus = "Observing notifications for 15 seconds…"
+        observedNotificationOutput = ""
+
+        DeviceCtl.observeNotifications(device.udid, names: parsedNotificationNames) { result in
+            self.isObservingNotifications = false
+
+            switch result {
+            case .success(let output):
+                self.notificationStatus = "Observation finished."
+                self.observedNotificationOutput = output.isEmpty ? "No notifications were observed." : output
+            case .failure(let error):
+                self.notificationStatus = self.message(for: error, fallback: "Observing notifications failed.")
+            }
+        }
+    }
+
+    private func message(for error: CommandLineError, fallback: String) -> String {
+        switch error {
+        case .missingCommand:
+            return "xcrun could not be launched."
+        case .missingOutput:
+            return "The command did not return the expected response."
+        case .unknown(let underlyingError):
+            let description = underlyingError.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+            return description.isEmpty ? fallback : description
+        }
+    }
+
 }
 
 extension Notification.Name {

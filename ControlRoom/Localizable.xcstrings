@@ -383,6 +383,9 @@
         }
       }
     },
+    "Check on Device" : {
+
+    },
     "Choose the device type and operating system for the new simulator" : {
       "localizations" : {
         "ar" : {
@@ -462,6 +465,9 @@
           }
         }
       }
+    },
+    "com.example.refresh, com.example.sync" : {
+
     },
     "Confirm" : {
       "localizations" : {
@@ -606,6 +612,9 @@
         }
       }
     },
+    "Darwin notifications" : {
+
+    },
     "Data:" : {
       "localizations" : {
         "ar" : {
@@ -689,6 +698,9 @@
         }
       }
     },
+    "Developer Mode:" : {
+
+    },
     "Device" : {
       "localizations" : {
         "ar" : {
@@ -720,6 +732,9 @@
       }
     },
     "Devices" : {
+
+    },
+    "Diagnostics" : {
 
     },
     "Differentiate Without Color" : {
@@ -948,6 +963,9 @@
         }
       }
     },
+    "Gather Full Logs" : {
+
+    },
     "Get Logs" : {
       "localizations" : {
         "ar" : {
@@ -991,6 +1009,9 @@
         }
       }
     },
+    "How to enable Developer Mode" : {
+
+    },
     "Increase Contrast" : {
       "localizations" : {
         "ar" : {
@@ -1000,6 +1021,9 @@
           }
         }
       }
+    },
+    "Install App" : {
+
     },
     "Jitter location" : {
       "localizations" : {
@@ -1107,6 +1131,9 @@
         }
       }
     },
+    "Logging Profile" : {
+
+    },
     "Logging:" : {
 
     },
@@ -1144,6 +1171,9 @@
 
     },
     "Modified" : {
+
+    },
+    "Most buttons will be inoperable if Developer Mode is off." : {
 
     },
     "Move the map, paste in coordinates or search for a location, then click Activate to update the simulator to match your centered coordinate." : {
@@ -1218,6 +1248,12 @@
           }
         }
       }
+    },
+    "Notifications" : {
+
+    },
+    "Observe for 15 Seconds" : {
+
     },
     "On/Off Labels" : {
       "localizations" : {
@@ -1352,6 +1388,9 @@
         }
       }
     },
+    "Post Notifications" : {
+
+    },
     "Power" : {
       "localizations" : {
         "ar" : {
@@ -1416,6 +1455,12 @@
       }
     },
     "Refresh Files" : {
+
+    },
+    "Register Logging Profile" : {
+
+    },
+    "Register the Core Device logging profile on this Mac so captured system logs include extra detail for debugging and feedback." : {
 
     },
     "Regular" : {
@@ -1667,6 +1712,9 @@
           }
         }
       }
+    },
+    "Save Sysdiagnose…" : {
+
     },
     "Save to: %@" : {
       "localizations" : {
@@ -1992,6 +2040,9 @@
           }
         }
       }
+    },
+    "Sysdiagnose" : {
+
     },
     "System" : {
       "localizations" : {

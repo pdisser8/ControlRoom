@@ -13,9 +13,11 @@ import AppKit
 /// Controls features relating to one specific app.
 struct DeviceAppView: View {
     @EnvironmentObject var preferences: Preferences
+    @EnvironmentObject var deepLinks: DeepLinksController
 
     @AppStorage("CRApps_ShowSystemApps") private var shouldShowSystemApps = true
     @AppStorage("CRApps_LastBundleID") private var lastBundleID = ""
+    @AppStorage("CRApps_LastOpenURL") private var lastOpenURL = ""
     @State private var applications: [Application] = []
     @State private var allApplications: [Application] = []
     @State private var appsCancellable: AnyCancellable?
@@ -40,7 +42,7 @@ struct DeviceAppView: View {
 
     private var visibleApplications: [Application] {
         applications
-            .filter { $0.type == .user || shouldShowSystemApps }
+            .filter { $0.type == .user || $0.isFilesApp || shouldShowSystemApps }
             .sorted()
     }
 
@@ -53,11 +55,11 @@ struct DeviceAppView: View {
     }
 
     private var supportsFileOperations: Bool {
-        currentApplication.type == .user
+        currentApplication.type == .user || currentApplication.isFilesApp
     }
 
     private var fileOperationsDisabledReason: String {
-        "File browsing and transfer are available only for apps installed as development builds."
+        "File browsing and transfer are available only for development builds and the Files app."
     }
 
     private var explorerEntries: [ExplorerEntry] {
@@ -146,6 +148,7 @@ struct DeviceAppView: View {
         Section {
             applicationPickerRow
             applicationSummaryRow
+            applicationDeepLinkRow
         }
     }
 
@@ -182,6 +185,29 @@ struct DeviceAppView: View {
                         .disabled(!isApplicationSelected || isLoadingFiles || isPerformingFileOperation)
                 }
             }
+        }
+    }
+
+    private var applicationDeepLinkRow: some View {
+        HStack {
+            TextField("Open URL in app:", text: $lastOpenURL, prompt: Text("Enter the URL or deep link you want to open"))
+            Button("Open", action: openURLInSelectedApp)
+                .disabled(!isApplicationSelected || lastOpenURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Menu("Saved Links") {
+                ForEach(deepLinks.links) { link in
+                    Button(link.name) { open(link) }
+                }
+
+                if deepLinks.links.isEmpty == false {
+                    Divider()
+                }
+
+                Button("Customize…") {
+                    UIState.shared.currentSheet = .deepLinkEditor
+                }
+            }
+            .frame(width: 120)
+            .disabled(!isApplicationSelected)
         }
     }
 
@@ -272,6 +298,19 @@ struct DeviceAppView: View {
     /// Launches the currently selected app.
     func launchApp() {
         DeviceCtl.launch(device.udid, appID: lastBundleID)
+    }
+
+    /// Launches the selected app with the currently entered payload URL.
+    func openURLInSelectedApp() {
+        let trimmedURL = lastOpenURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedURL.isNotEmpty else { return }
+
+        DeviceCtl.launch(device.udid, appID: lastBundleID, options: [.payloadURL(trimmedURL)])
+    }
+
+    func open(_ link: DeepLink) {
+        lastOpenURL = link.url.absoluteString
+        openURLInSelectedApp()
     }
 
     /// Terminates the currently selected app.

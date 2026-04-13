@@ -66,6 +66,14 @@ extension DeviceCtl {
                 "--destination", destination,
             ])
         }
+
+        static func displays(_ deviceId: String, flags: [Flag] = []) -> Command {
+            Command(["device", "info", "displays", "--device", deviceId] + flags.flatMap(\.arguments))
+        }
+
+        static func lockState(_ deviceId: String, flags: [Flag] = []) -> Command {
+            Command(["device", "info", "lockState", "--device", deviceId] + flags.flatMap(\.arguments))
+        }
         
         static func openURL(_ deviceId: String, url: String) -> Command {
             Command(["device", "process", "launch", "--device", deviceId, "--payload-url", url, "com.apple.mobilesafari"])
@@ -110,6 +118,37 @@ extension DeviceCtl {
             }
 
             arguments += ["--domain-type", "appDataContainer", "--domain-identifier", appBundleId]
+            return Command(arguments)
+        }
+
+        static func registerLoggingProfile() -> Command {
+            Command(["manage", "loggingProfile", "register"])
+        }
+
+        static func sysdiagnose(_ deviceId: String, destination: String? = nil, gatherFullLogs: Bool = false) -> Command {
+            var arguments = ["device", "sysdiagnose", "--device", deviceId]
+
+            if let destination, destination.isNotEmpty {
+                arguments += ["--destination", destination]
+            }
+
+            if gatherFullLogs {
+                arguments.append("--gather-full-logs")
+            }
+
+            return Command(arguments)
+        }
+
+        static func postNotifications(_ deviceId: String, names: [String]) -> Command {
+            var arguments = ["device", "notification", "post", "--device", deviceId]
+            arguments += names.flatMap { ["--name", $0] }
+            return Command(arguments)
+        }
+
+        static func observeNotifications(_ deviceId: String, names: [String], sessionTimeout: Int, timeout: Int) -> Command {
+            var arguments = ["--timeout", String(timeout), "device", "notification", "observe", "--device", deviceId]
+            arguments += names.flatMap { ["--name", $0] }
+            arguments += ["--session-timeout", String(sessionTimeout)]
             return Command(arguments)
         }
     }

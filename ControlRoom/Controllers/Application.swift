@@ -10,6 +10,8 @@ import Foundation
 import AppKit
 
 struct Application: Hashable, Comparable {
+    static let filesAppBundleIdentifier = "com.apple.DocumentsApp"
+
     let url: URL?
     let type: ApplicationType?
     let displayName: String
@@ -157,5 +159,9 @@ struct Application: Hashable, Comparable {
         }
 
         return fullIconNames
+    }
+
+    var isFilesApp: Bool {
+        bundleIdentifier == Self.filesAppBundleIdentifier
     }
 }
