@@ -7,12 +7,16 @@
 //
 import SwiftUI
 import Combine
+import AppKit
+import UniformTypeIdentifiers
 
 /// Presents basic system info for a physical device returned by devicectl.
 struct DeviceDetailView: View {
     @EnvironmentObject var deepLinks: DeepLinksController
     @AppStorage("CRApps_LastOpenURL") private var lastOpenURL = ""
     @AppStorage("CRApps_ShowSystemApps") private var shouldShowSystemApps = true
+    @State private var installStatusMessage = ""
+    @State private var isInstallingApp = false
 
     let device: DeviceCtl.Device
     @ObservedObject var devicesController: DevicesController
@@ -47,6 +51,16 @@ struct DeviceDetailView: View {
             .font(.subheadline)
             HStack {
                 Button("Reboot", action: rebootDevice)
+            }
+            HStack {
+                Button("Add App", action: installApp)
+                    .disabled(isInstallingApp)
+
+                if installStatusMessage.isNotEmpty {
+                    Text(installStatusMessage)
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
             }
             HStack {
                 Button("Pair", action: pairDevice)
@@ -100,6 +114,113 @@ struct DeviceDetailView: View {
     func rebootDevice() {
         DeviceCtl.reboot(device.udid)
     }
+
+    func installApp() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.resolvesAliases = true
+        panel.allowedContentTypes = [.ipa, .appBundle]
+        panel.prompt = "Install"
+        panel.message = "Choose an .ipa or .app to install on the selected device."
+
+        guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
+
+        let pathExtension = selectedURL.pathExtension.lowercased()
+        guard pathExtension == "ipa" || pathExtension == "app" else {
+            installStatusMessage = "Choose an .ipa or .app file."
+            return
+        }
+
+        let preferredBundleIdentifier = inferredBundleIdentifier(from: selectedURL)
+
+        isInstallingApp = true
+        installStatusMessage = "Installing \(selectedURL.lastPathComponent)…"
+
+        DeviceCtl.install(device.udid, appBundlePath: selectedURL.path) { result in
+            self.isInstallingApp = false
+
+            switch result {
+            case .success:
+                self.installStatusMessage = "Installed \(selectedURL.lastPathComponent)."
+                NotificationCenter.default.post(
+                    name: .deviceAppInstallDidFinish,
+                    object: self.device.udid,
+                    userInfo: [DeviceAppInstallNotification.bundleIdentifierKey: preferredBundleIdentifier as Any]
+                )
+            case .failure(let error):
+                self.installStatusMessage = self.message(for: error)
+            }
+        }
+    }
+
+    private func inferredBundleIdentifier(from url: URL) -> String? {
+        switch url.pathExtension.lowercased() {
+        case "app":
+            return bundleIdentifierFromAppBundle(at: url)
+        case "ipa":
+            return bundleIdentifierFromIPA(at: url)
+        default:
+            return nil
+        }
+    }
+
+    private func bundleIdentifierFromAppBundle(at url: URL) -> String? {
+        let infoPlistURL = url.appendingPathComponent("Info.plist")
+        guard
+            let plistData = try? Data(contentsOf: infoPlistURL),
+            let propertyList = try? PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any]
+        else {
+            return nil
+        }
+
+        return propertyList["CFBundleIdentifier"] as? String
+    }
+
+    private func bundleIdentifierFromIPA(at url: URL) -> String? {
+        guard let listingData = Process.execute("/usr/bin/unzip", arguments: ["-Z1", url.path]),
+              let listing = String(data: listingData, encoding: .utf8)
+        else {
+            return nil
+        }
+
+        guard let infoPlistPath = listing
+            .split(separator: "\n")
+            .map(String.init)
+            .first(where: { $0.hasPrefix("Payload/") && $0.hasSuffix(".app/Info.plist") })
+        else {
+            return nil
+        }
+
+        guard let plistData = Process.execute("/usr/bin/unzip", arguments: ["-p", url.path, infoPlistPath]),
+              let propertyList = try? PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any]
+        else {
+            return nil
+        }
+
+        return propertyList["CFBundleIdentifier"] as? String
+    }
+
+    private func message(for error: CommandLineError) -> String {
+        switch error {
+        case .missingCommand:
+            return "xcrun could not be launched."
+        case .missingOutput:
+            return "The install command did not return the expected response."
+        case .unknown(let underlyingError):
+            let description = underlyingError.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+            return description.isEmpty ? "The app install failed." : description
+        }
+    }
+}
+
+extension Notification.Name {
+    static let deviceAppInstallDidFinish = Notification.Name("deviceAppInstallDidFinish")
+}
+
+enum DeviceAppInstallNotification {
+    static let bundleIdentifierKey = "bundleIdentifier"
 }
 
 
