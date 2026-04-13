@@ -10,10 +10,11 @@ import SwiftUI
 
 struct AppSummaryView: View {
     let application: Application
+    var iconOverride: NSImage? = nil
 
     var body: some View {
         HStack {
-            AppIcon(application: application, width: 60)
+            AppIcon(application: application, iconOverride: iconOverride, width: 60)
 
             VStack(alignment: .leading) {
                 Text(application.displayName)

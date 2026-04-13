@@ -12,4 +12,6 @@ import UniformTypeIdentifiers
 /// Finder file extension allowed
 extension UTType {
     static let json = UTType.init(filenameExtension: "json")!
+    static let ipa = UTType(filenameExtension: "ipa")!
+    static let appBundle = UTType(filenameExtension: "app")!
 }

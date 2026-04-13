@@ -10,10 +10,11 @@ import SwiftUI
 
 struct AppIcon: View {
     let application: Application
+    var iconOverride: NSImage? = nil
     let width: CGFloat
 
     var body: some View {
-        if let icon = application.icon {
+        if let icon = iconOverride ?? application.icon {
             Image(nsImage: icon)
                 .resizable()
                 .cornerRadius(width / 5)

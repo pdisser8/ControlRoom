@@ -53,6 +53,19 @@ extension DeviceCtl {
         static func listApps(_ deviceId: String, flags: [Flag] = []) -> Command {
             Command(["device", "info", "apps", "--device", deviceId] + flags.flatMap(\.arguments))
         }
+
+        static func appIcon(_ deviceId: String, appBundleId: String, width: Int, height: Int, scale: Int = 2, allowPlaceholder: Bool = true, destination: String) -> Command {
+            Command([
+                "device", "info", "appIcon",
+                "--device", deviceId,
+                "--app-bundle-id", appBundleId,
+                "--allow-placeholder", allowPlaceholder ? "true" : "false",
+                "--width", String(width),
+                "--height", String(height),
+                "--scale", String(scale),
+                "--destination", destination,
+            ])
+        }
         
         static func openURL(_ deviceId: String, url: String) -> Command {
             Command(["device", "process", "launch", "--device", deviceId, "--payload-url", url, "com.apple.mobilesafari"])

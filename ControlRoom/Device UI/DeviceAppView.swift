@@ -25,6 +25,7 @@ struct DeviceAppView: View {
     @State private var currentDirectory = ""
     @State private var selectedFilePaths = Set<String>()
     @State private var explorerMessage = ""
+    @State private var currentAppIcon: NSImage?
     @State private var isLoadingFiles = false
     @State private var isPerformingFileOperation = false
     @State private var shouldShowDeleteFilesConfirmation = false
@@ -118,7 +119,14 @@ struct DeviceAppView: View {
         .onChange(of: lastBundleID) { _ in
             currentDirectory = ""
             selectedFilePaths.removeAll()
+            loadCurrentAppIcon()
             refreshFiles()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .deviceAppInstallDidFinish)) { notification in
+            guard let installedDeviceID = notification.object as? String, installedDeviceID == device.udid else { return }
+            let previousBundleIDs = Set(applications.map(\.bundleIdentifier))
+            let preferredBundleID = notification.userInfo?[DeviceAppInstallNotification.bundleIdentifierKey] as? String
+            loadApplications(preferredBundleID: preferredBundleID, previousBundleIDs: previousBundleIDs)
         }
         .alert(isPresented: $shouldShowUninstallConfirmationAlert) {
             Alert(title: Text("Are you sure you want to permanently delete \(currentApplication.displayName)"),
@@ -157,7 +165,7 @@ struct DeviceAppView: View {
 
     private var applicationSummaryRow: some View {
         HStack {
-            AppSummaryView(application: currentApplication)
+            AppSummaryView(application: currentApplication, iconOverride: currentAppIcon)
             Spacer()
 
             VStack(alignment: .trailing) {
@@ -324,7 +332,7 @@ struct DeviceAppView: View {
     }
     
     /// Loads the list of applications from the device using devicectl.
-    private func loadApplications() {
+    private func loadApplications(preferredBundleID: String? = nil, previousBundleIDs: Set<String>? = nil) {
         print("📱 Loading applications for device: \(device.udid)")
         appsCancellable = DeviceCtl.listApplications(device.udid, includeAllApps: shouldShowSystemApps)
             .catch { error -> Just<DeviceCtl.ApplicationsList> in
@@ -344,12 +352,46 @@ struct DeviceAppView: View {
                 self.allApplications = apps
                 self.applications = apps
 
-                if self.lastBundleID.isEmpty || apps.contains(where: { $0.bundleIdentifier == self.lastBundleID }) == false {
-                    self.lastBundleID = apps.first?.bundleIdentifier ?? ""
-                }
+                self.selectPreferredApplication(from: apps, preferredBundleID: preferredBundleID, previousBundleIDs: previousBundleIDs)
+                self.loadCurrentAppIcon()
 
                 self.refreshFiles()
             })
+    }
+
+    private func loadCurrentAppIcon() {
+        guard currentApplication.bundleIdentifier.isNotEmpty else {
+            currentAppIcon = nil
+            return
+        }
+
+        currentAppIcon = nil
+        DeviceCtl.fetchAppIcon(device.udid, appBundleId: currentApplication.bundleIdentifier) { image in
+            guard self.currentApplication.bundleIdentifier == self.lastBundleID else { return }
+            self.currentAppIcon = image
+        }
+    }
+
+    private func selectPreferredApplication(from apps: [Application], preferredBundleID: String?, previousBundleIDs: Set<String>?) {
+        if let preferredBundleID, apps.contains(where: { $0.bundleIdentifier == preferredBundleID }) {
+            lastBundleID = preferredBundleID
+            return
+        }
+
+        if let previousBundleIDs {
+            let newApplications = apps.filter { !previousBundleIDs.contains($0.bundleIdentifier) }
+
+            if newApplications.count == 1, let newApplication = newApplications.first {
+                lastBundleID = newApplication.bundleIdentifier
+                return
+            }
+        }
+
+        if apps.contains(where: { $0.bundleIdentifier == lastBundleID }) {
+            return
+        }
+
+        lastBundleID = apps.first?.bundleIdentifier ?? ""
     }
 
     private func refreshFiles() {

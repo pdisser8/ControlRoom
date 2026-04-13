@@ -55,6 +55,29 @@ enum DeviceCtl: CommandLineCommandExecuter {
         execute(.install(deviceId, appBundle: appBundlePath), completion: completion)
     }
 
+    static func fetchAppIcon(_ deviceId: String, appBundleId: String, width: Int = 60, height: Int = 60, scale: Int = 2, allowPlaceholder: Bool = true, completion: @escaping (NSImage?) -> Void) {
+        let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent("devicectl-appicon-\(UUID().uuidString).png")
+
+        execute(.appIcon(deviceId, appBundleId: appBundleId, width: width, height: height, scale: scale, allowPlaceholder: allowPlaceholder, destination: destinationURL.path)) { result in
+            defer {
+                try? FileManager.default.removeItem(at: destinationURL)
+            }
+
+            guard case .success = result,
+                  let image = NSImage(contentsOf: destinationURL)
+            else {
+                DispatchQueue.main.async {
+                    completion(nil)
+                }
+                return
+            }
+
+            DispatchQueue.main.async {
+                completion(image)
+            }
+        }
+    }
+
     static func uninstall(_ deviceId: String, appID: String, completion: ((Result<Data, CommandLineError>) -> Void)? = nil) {
         execute(.uninstall(deviceId, appBundleId: appID), completion: completion)
     }
