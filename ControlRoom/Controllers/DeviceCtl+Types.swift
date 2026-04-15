@@ -251,30 +251,51 @@ extension DeviceCtl {
         }
         
         private enum RootKeys: String, CodingKey { case result }
-        private enum ResultKeys: String, CodingKey { case appFiles }
+        private enum ResultKeys: String, CodingKey {
+            case appFiles
+            case files
+        }
         
         init(from decoder: Decoder) throws {
             let root = try decoder.container(keyedBy: RootKeys.self)
             let result = try root.nestedContainer(keyedBy: ResultKeys.self, forKey: .result)
-            appFiles = try result.decode([AppFile].self, forKey: .appFiles)
+            if let decodedFiles = try result.decodeIfPresent([AppFile].self, forKey: .files) {
+                appFiles = decodedFiles
+            } else {
+                appFiles = try result.decode([AppFile].self, forKey: .appFiles)
+            }
         }
     }
         
     struct AppFile: Decodable {
         let name: String
+        let relativePath: String
         let isDirectory: Bool
         let size: Int?
         let lastModDate: Date?
     
         private enum CodingKeys: String, CodingKey {
             case name
+            case relativePath
+            case metadata
+            case resources
             case isDirectory
             case size
             case lastModDate
         }
 
-        init(name: String, isDirectory: Bool, size: Int?, lastModDate: Date?) {
+        private enum MetadataKeys: String, CodingKey {
+            case size
+            case lastModDate
+        }
+
+        private enum ResourcesKeys: String, CodingKey {
+            case isDirectory
+        }
+
+        init(name: String, relativePath: String, isDirectory: Bool, size: Int?, lastModDate: Date?) {
             self.name = name
+            self.relativePath = relativePath
             self.isDirectory = isDirectory
             self.size = size
             self.lastModDate = lastModDate
@@ -282,10 +303,27 @@ extension DeviceCtl {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            name = try container.decode(String.self, forKey: .name)
-            isDirectory = try container.decode(Bool.self, forKey: .isDirectory)
+            let decodedRelativePath = (try? container.decode(String.self, forKey: .relativePath))
+                ?? (try? container.decode(String.self, forKey: .name))
+                ?? ""
+            relativePath = decodedRelativePath
 
-            if let decodedSize = try? container.decode(Int.self, forKey: .size) {
+            let decodedName = (try? container.decode(String.self, forKey: .name)) ?? decodedRelativePath
+            name = URL(fileURLWithPath: decodedName).lastPathComponent
+
+            if let resources = try? container.nestedContainer(keyedBy: ResourcesKeys.self, forKey: .resources) {
+                isDirectory = (try? resources.decode(Bool.self, forKey: .isDirectory)) ?? false
+            } else {
+                isDirectory = (try? container.decode(Bool.self, forKey: .isDirectory)) ?? false
+            }
+
+            let metadata = try? container.nestedContainer(keyedBy: MetadataKeys.self, forKey: .metadata)
+
+            if let decodedSize = try? metadata?.decode(Int.self, forKey: .size) {
+                size = decodedSize
+            } else if let decodedSize = try? metadata?.decode(String.self, forKey: .size), let parsedSize = Int(decodedSize) {
+                size = parsedSize
+            } else if let decodedSize = try? container.decode(Int.self, forKey: .size) {
                 size = decodedSize
             } else if let decodedSize = try? container.decode(String.self, forKey: .size), let parsedSize = Int(decodedSize) {
                 size = parsedSize
@@ -293,7 +331,11 @@ extension DeviceCtl {
                 size = nil
             }
 
-            if let timestamp = try? container.decode(Double.self, forKey: .lastModDate) {
+            if let timestamp = try? metadata?.decode(Double.self, forKey: .lastModDate) {
+                lastModDate = Date(timeIntervalSince1970: timestamp)
+            } else if let dateString = try? metadata?.decode(String.self, forKey: .lastModDate) {
+                lastModDate = Self.date(from: dateString)
+            } else if let timestamp = try? container.decode(Double.self, forKey: .lastModDate) {
                 lastModDate = Date(timeIntervalSince1970: timestamp)
             } else if let dateString = try? container.decode(String.self, forKey: .lastModDate) {
                 lastModDate = Self.date(from: dateString)

@@ -18,6 +18,7 @@ struct DeviceAppView: View {
     @AppStorage("CRApps_ShowSystemApps") private var shouldShowSystemApps = true
     @AppStorage("CRApps_LastBundleID") private var lastBundleID = ""
     @AppStorage("CRApps_LastOpenURL") private var lastOpenURL = ""
+    @AppStorage("CRApps_RestartBeforeOpenURL") private var shouldRestartAppBeforeOpeningURL = false
     @State private var applications: [Application] = []
     @State private var allApplications: [Application] = []
     @State private var appsCancellable: AnyCancellable?
@@ -58,29 +59,73 @@ struct DeviceAppView: View {
         currentApplication.type == .user || currentApplication.isFilesApp
     }
 
+    private var uploadDestinationPath: String? {
+        if currentDirectory.isNotEmpty {
+            return currentDirectory
+        }
+
+        if appFiles.contains(where: { $0.relativePath == "Documents" && $0.isDirectory }) {
+            return "Documents"
+        }
+
+        return nil
+    }
+
     private var fileOperationsDisabledReason: String {
         "File browsing and transfer are available only for development builds and the Files app."
     }
 
     private var explorerEntries: [ExplorerEntry] {
-        appFiles
-            .map { file in
-                let fullPath = currentDirectory.isEmpty ? file.name : currentDirectory + "/" + file.name
-                return ExplorerEntry(
-                    id: fullPath,
+        let prefix = currentDirectory.isEmpty ? "" : currentDirectory + "/"
+        var entriesByID: [String: ExplorerEntry] = [:]
+
+        for file in appFiles {
+            let relativePath = file.relativePath
+
+            if currentDirectory.isNotEmpty {
+                guard relativePath.hasPrefix(prefix) || relativePath == currentDirectory else { continue }
+                guard relativePath != currentDirectory else { continue }
+            }
+
+            let remainder: String
+            if prefix.isEmpty {
+                remainder = relativePath
+            } else {
+                remainder = String(relativePath.dropFirst(prefix.count))
+            }
+
+            let pathComponents = remainder.split(separator: "/", omittingEmptySubsequences: true)
+            guard let firstComponent = pathComponents.first else { continue }
+
+            let childName = String(firstComponent)
+            let childID = prefix.isEmpty ? childName : prefix + childName
+
+            if pathComponents.count == 1 {
+                entriesByID[childID] = ExplorerEntry(
+                    id: childID,
                     name: file.name,
                     isDirectory: file.isDirectory,
                     size: file.size,
                     lastModified: file.lastModDate
                 )
+            } else if entriesByID[childID] == nil {
+                entriesByID[childID] = ExplorerEntry(
+                    id: childID,
+                    name: childName,
+                    isDirectory: true,
+                    size: nil,
+                    lastModified: nil
+                )
             }
-            .sorted { lhs, rhs in
-                if lhs.isDirectory != rhs.isDirectory {
-                    return lhs.isDirectory && !rhs.isDirectory
-                }
+        }
 
-                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        return entriesByID.values.sorted { lhs, rhs in
+            if lhs.isDirectory != rhs.isDirectory {
+                return lhs.isDirectory && !rhs.isDirectory
             }
+
+            return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        }
     }
 
     private var selectedExplorerEntries: [ExplorerEntry] {
@@ -179,35 +224,40 @@ struct DeviceAppView: View {
                     Button("Uninstall", action: confirmDeleteApp)
                 }
                 .disabled(currentApplication == .default)
-
-                HStack {
-                    Button("Refresh Files", action: refreshFiles)
-                        .disabled(!isApplicationSelected || isLoadingFiles || isPerformingFileOperation)
-                }
             }
         }
     }
 
     private var applicationDeepLinkRow: some View {
-        HStack {
-            TextField("Open URL in app:", text: $lastOpenURL, prompt: Text("Enter the URL or deep link you want to open"))
-            Button("Open", action: openURLInSelectedApp)
-                .disabled(!isApplicationSelected || lastOpenURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Menu("Saved Links") {
-                ForEach(deepLinks.links) { link in
-                    Button(link.name) { open(link) }
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                TextField("Open URL:", text: $lastOpenURL, prompt: Text("Enter the URL or deep link you want to open"))
+                Button("Open in App", action: openURLInSelectedApp)
+                    .disabled(!isApplicationSelected || lastOpenURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Open in Safari", action: openURLInSafari)
+                    .disabled(lastOpenURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Menu("Saved Links") {
+                    ForEach(deepLinks.links) { link in
+                        Menu(link.name) {
+                            Button("Open in App") { openInSelectedApp(link) }
+                                .disabled(!isApplicationSelected)
+                            Button("Open in Safari") { openInSafari(link) }
+                        }
+                    }
 
-                if deepLinks.links.isEmpty == false {
-                    Divider()
-                }
+                    if deepLinks.links.isEmpty == false {
+                        Divider()
+                    }
 
-                Button("Customize…") {
-                    UIState.shared.currentSheet = .deepLinkEditor
+                    Button("Customize…") {
+                        UIState.shared.currentSheet = .deepLinkEditor
+                    }
                 }
+                .frame(width: 120)
             }
-            .frame(width: 120)
-            .disabled(!isApplicationSelected)
+
+            Toggle("Restart app first", isOn: $shouldRestartAppBeforeOpeningURL)
+                .disabled(!isApplicationSelected)
         }
     }
 
@@ -236,22 +286,30 @@ struct DeviceAppView: View {
     }
 
     private var filesToolbarRow: some View {
-        HStack {
-            Text("Current folder:")
-                .foregroundColor(.secondary)
-            Text(displayedDirectory)
-                .textSelection(.enabled)
+        VStack{
+            HStack {
+                Text("Current folder:")
+                    .foregroundColor(.secondary)
+            }
+            HStack {
+                Text(displayedDirectory)
+                    .textSelection(.enabled)
+            }
 
-            Spacer()
-
-            Button("Go Up One Level", action: navigateUp)
-                .disabled(currentDirectory.isEmpty || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations)
-            Button("Add File to iPad", action: uploadFiles)
-                .disabled(!isApplicationSelected || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations)
-            Button("Add File to Mac", action: downloadSelectedFiles)
-                .disabled(selectedExplorerEntries.isEmpty || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations)
-            Button("Delete", role: .destructive, action: confirmDeleteFiles)
-                .disabled(selectedExplorerEntries.isEmpty || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations)
+            HStack {                
+                Button("Go Up One Level", action: navigateUp)
+                    .disabled(currentDirectory.isEmpty || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations)
+                Button("Add File to iPad", action: uploadFiles)
+                    .disabled(!isApplicationSelected || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations || uploadDestinationPath == nil)
+                Button("Add File to Mac", action: downloadSelectedFiles)
+                    .disabled(selectedExplorerEntries.isEmpty || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations)
+                Button("Delete", role: .destructive, action: confirmDeleteFiles)
+                    .disabled(selectedExplorerEntries.isEmpty || isLoadingFiles || isPerformingFileOperation || !supportsFileOperations)
+            }
+            HStack {
+                Button("Refresh Files", action: refreshFiles)
+                    .disabled(!isApplicationSelected || isLoadingFiles || isPerformingFileOperation)
+            }
         }
     }
 
@@ -300,17 +358,34 @@ struct DeviceAppView: View {
         DeviceCtl.launch(device.udid, appID: lastBundleID)
     }
 
-    /// Launches the selected app with the currently entered payload URL.
     func openURLInSelectedApp() {
+        let trimmedURL = lastOpenURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedURL.isNotEmpty, isApplicationSelected else { return }
+
+        var options: [DeviceCtl.Launch.Option] = []
+
+        if shouldRestartAppBeforeOpeningURL {
+            options.append(.terminateExisting)
+        }
+
+        DeviceCtl.openURL(device.udid, url: trimmedURL, appID: lastBundleID, options: options)
+    }
+
+    func openURLInSafari() {
         let trimmedURL = lastOpenURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmedURL.isNotEmpty else { return }
 
-        DeviceCtl.launch(device.udid, appID: lastBundleID, options: [.payloadURL(trimmedURL)])
+        DeviceCtl.openURL(device.udid, url: trimmedURL)
     }
 
-    func open(_ link: DeepLink) {
+    func openInSelectedApp(_ link: DeepLink) {
         lastOpenURL = link.url.absoluteString
         openURLInSelectedApp()
+    }
+
+    func openInSafari(_ link: DeepLink) {
+        lastOpenURL = link.url.absoluteString
+        openURLInSafari()
     }
 
     /// Terminates the currently selected app.
@@ -450,26 +525,23 @@ struct DeviceAppView: View {
         isLoadingFiles = true
         explorerMessage = "Loading \(displayedDirectory)…"
 
-        let publisher: AnyPublisher<DeviceCtl.ApplicationFilesList, DeviceCtl.Error>
-        if currentDirectory.isEmpty {
-            publisher = DeviceCtl.listApplicationFiles(device.udid, appBundleId: selectedApplication.bundleIdentifier)
-        } else {
-            publisher = DeviceCtl.listApplicationFiles(device.udid, appBundleId: selectedApplication.bundleIdentifier, subdirectory: currentDirectory)
-        }
-
-        filesCancellable = publisher
+        filesCancellable = DeviceCtl.listApplicationFiles(device.udid, appBundleId: selectedApplication.bundleIdentifier)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 self.isLoadingFiles = false
 
                 if case .failure(let error) = completion {
-                    self.appFiles = []
-                    self.explorerMessage = self.message(for: error)
+                    if self.appFiles.isEmpty {
+                        self.explorerMessage = self.message(for: error)
+                    } else {
+                        self.explorerMessage = "Showing the last successful listing. " + self.message(for: error)
+                    }
                 }
             }, receiveValue: { filesList in
                 self.selectedFilePaths.removeAll()
                 self.appFiles = filesList.appFiles
-                self.explorerMessage = filesList.appFiles.isEmpty ? "This folder is empty." : ""
+
+                self.explorerMessage = self.explorerEntries.isEmpty ? "This folder is empty." : ""
             })
     }
 
@@ -499,11 +571,15 @@ struct DeviceAppView: View {
 
         let urls = panel.urls
         guard urls.isNotEmpty else { return }
+        guard let destinationPath = uploadDestinationPath else {
+            explorerMessage = "Open a writable folder such as Documents before uploading."
+            return
+        }
 
         isPerformingFileOperation = true
         explorerMessage = "Uploading \(urls.count) item\(urls.count == 1 ? "" : "s")…"
 
-        DeviceCtl.copyItemsToApplicationContainer(device.udid, appBundleId: selectedApplication.bundleIdentifier, sourceURLs: urls, destinationPath: currentDirectory) { result in
+        DeviceCtl.copyItemsToApplicationContainer(device.udid, appBundleId: selectedApplication.bundleIdentifier, sourceURLs: urls, destinationPath: destinationPath) { result in
             self.isPerformingFileOperation = false
 
             switch result {

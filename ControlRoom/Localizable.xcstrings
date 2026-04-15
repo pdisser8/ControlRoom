@@ -1315,6 +1315,9 @@
         }
       }
     },
+    "Open in App" : {
+
+    },
     "Open in Finder" : {
       "localizations" : {
         "ar" : {
@@ -1324,6 +1327,9 @@
           }
         }
       }
+    },
+    "Open in Safari" : {
+
     },
     "Open in Terminal" : {
       "localizations" : {
@@ -1572,6 +1578,9 @@
           }
         }
       }
+    },
+    "Restart app first" : {
+
     },
     "Restart last selected app" : {
       "localizations" : {

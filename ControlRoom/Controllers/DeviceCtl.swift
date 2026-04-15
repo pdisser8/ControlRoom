@@ -91,8 +91,8 @@ enum DeviceCtl: CommandLineCommandExecuter {
         execute(.terminate(deviceId, pid: pid), completion: completion)
     }
     
-    static func openURL(_ deviceId: String, url: String, completion: ((Result<Data, CommandLineError>) -> Void)? = nil) {
-        execute(.openURL(deviceId, url: url), completion: completion)
+    static func openURL(_ deviceId: String, url: String, appID: String? = nil, options: [Launch.Option] = [], completion: ((Result<Data, CommandLineError>) -> Void)? = nil) {
+        execute(.openURL(deviceId, url: url, appBundleId: appID, options: options), completion: completion)
     }
     
     static func reboot (_ deviceId: String, completion: ((Result<Data, CommandLineError>) -> Void)? = nil) {
@@ -188,14 +188,36 @@ enum DeviceCtl: CommandLineCommandExecuter {
     }
 
     static func copyItemsToApplicationContainer(_ deviceId: String, appBundleId: String, sourceURLs: [URL], destinationPath: String, removeExistingContent: Bool = false, completion: ((Result<Data, DeviceCtl.Error>) -> Void)? = nil) {
-        let sourcePaths = sourceURLs.map(\.path)
-        executeFileCommand(.copyToAppDataContainer(deviceId, appBundleId: appBundleId, sourcePaths: sourcePaths, destination: normalizeRemotePath(destinationPath), removeExistingContent: removeExistingContent), completion: completion)
+        let normalizedDestination = normalizeRemotePath(destinationPath)
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            for sourceURL in sourceURLs {
+                let explicitDestination = explicitRemoteDestination(basePath: normalizedDestination, sourceURL: sourceURL)
+
+                switch runFileCommand(.copyToAppDataContainer(deviceId, appBundleId: appBundleId, sourcePaths: [sourceURL.path], destination: explicitDestination, removeExistingContent: removeExistingContent)) {
+                case .success:
+                    continue
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        completion?(.failure(error))
+                    }
+                    return
+                }
+            }
+
+            DispatchQueue.main.async {
+                completion?(.success(Data()))
+            }
+        }
     }
 
     static func copyItemsFromApplicationContainer(_ deviceId: String, appBundleId: String, sourcePaths: [String], destinationDirectory: URL, completion: ((Result<Data, DeviceCtl.Error>) -> Void)? = nil) {
         DispatchQueue.global(qos: .userInitiated).async {
             for sourcePath in sourcePaths {
-                switch runFileCommand(.copyFromAppDataContainer(deviceId, appBundleId: appBundleId, source: sourcePath, destination: destinationDirectory.path)) {
+                let sourceName = URL(fileURLWithPath: sourcePath).lastPathComponent
+                let destinationURL = destinationDirectory.appendingPathComponent(sourceName, isDirectory: false)
+
+                switch runFileCommand(.copyFromAppDataContainer(deviceId, appBundleId: appBundleId, source: sourcePath, destination: destinationURL.path)) {
                 case .success:
                     continue
                 case .failure(let error):
@@ -395,6 +417,16 @@ enum DeviceCtl: CommandLineCommandExecuter {
     private static func normalizeRemotePath(_ path: String) -> String? {
         let trimmedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/").union(.whitespacesAndNewlines))
         return trimmedPath.isEmpty ? nil : trimmedPath
+    }
+
+    private static func explicitRemoteDestination(basePath: String?, sourceURL: URL) -> String? {
+        let sourceName = sourceURL.lastPathComponent
+
+        guard let basePath else {
+            return sourceName
+        }
+
+        return basePath + "/" + sourceName
     }
 
     private static func parseDisplaySummary(from json: Any) -> String? {

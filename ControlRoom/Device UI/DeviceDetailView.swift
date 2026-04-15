@@ -11,9 +11,6 @@ import AppKit
 
 /// Presents basic system info for a physical device returned by devicectl.
 struct DeviceDetailView: View {
-    @EnvironmentObject var deepLinks: DeepLinksController
-    @AppStorage("CRApps_LastOpenURL") private var lastOpenURL = ""
-    @AppStorage("CRApps_ShowSystemApps") private var shouldShowSystemApps = true
     @State private var installStatusMessage = ""
     @State private var isInstallingApp = false
     @State private var displaySummary = "Loading…"
@@ -74,24 +71,6 @@ struct DeviceDetailView: View {
                 Button("Pair", action: pairDevice)
                 Button("Unpair", action: unpairDevice)
             }
-            HStack {
-                TextField("Open URL:", text: $lastOpenURL, prompt: Text("Enter the URL or deep link you want to open"))
-                Button("Open", action: openURL)
-                Menu("Saved Links") {
-                    ForEach(deepLinks.links) { link in
-                        Button(link.name) { open(link) }
-                    }
-
-                    if deepLinks.links.isEmpty == false {
-                        Divider()
-                    }
-
-                    Button("Customize…") {
-                        UIState.shared.currentSheet = .deepLinkEditor
-                    }
-                }
-                .frame(width: 120)
-            }
         }
         .tabItem {
                 Text("System")
@@ -124,13 +103,6 @@ struct DeviceDetailView: View {
         }
     }
 
-    /// Opens a URL in the appropriate device app.
-    func openURL() {
-        DeviceCtl.openURL(device.udid, url: lastOpenURL)
-    }
-    func open(_ link: DeepLink) {
-        DeviceCtl.openURL(device.udid, url: link.url.absoluteString)
-    }
     func pairDevice() {
         DeviceCtl.pair(device.udid)
     }

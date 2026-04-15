@@ -43,7 +43,7 @@ extension DeviceCtl {
         }
         
         static func launch(_ deviceId: String, appBundleId: String, options: [Launch.Option] = []) -> Command {
-            Command(["device", "process", "launch", "--device", deviceId, appBundleId] + options.flatMap(\.arguments))
+            Command(["device", "process", "launch", "--device", deviceId] + options.flatMap(\.arguments) + [appBundleId])
         }
         
         static func terminate(_ deviceId: String, pid: Int, options: [Terminate.Option] = []) -> Command {
@@ -75,8 +75,12 @@ extension DeviceCtl {
             Command(["device", "info", "lockState", "--device", deviceId] + flags.flatMap(\.arguments))
         }
         
-        static func openURL(_ deviceId: String, url: String) -> Command {
-            Command(["device", "process", "launch", "--device", deviceId, "--payload-url", url, "com.apple.mobilesafari"])
+        static func openURL(_ deviceId: String, url: String, appBundleId: String? = nil, options: [Launch.Option] = []) -> Command {
+            if let appBundleId, appBundleId.isNotEmpty {
+                return launch(deviceId, appBundleId: appBundleId, options: [.payloadURL(url.appLaunchDeepLinkTarget)] + options)
+            }
+
+            return Command(["device", "process", "launch", "--device", deviceId, "--payload-url", url, "com.apple.mobilesafari"])
         }
         
         static func reboot (_ deviceId: String) -> Command {
